@@ -1,0 +1,24 @@
+{
+  "id": "nma",
+  "name": "Northern Michigan Asylum",
+  "location": "Traverse City, Michigan",
+  "archetype": "kirkbride",
+  "sources": [
+    { "id": "src.rootsweb_b50", "title": "Historic Asylums: Building 50", "url": "https://sites.rootsweb.com/~asylums/northern_mi/map/b50.html", "kind": "web", "accessed": "2026-10-14" },
+    { "id": "src.sah_archipedia_gtc", "title": "SAH Archipedia: Grand Traverse Commons", "url": "https://sah-archipedia.org/node/14840", "kind": "web", "accessed": "2026-10-14" },
+    { "id": "src.nmh_overview", "title": "Northern Michigan History: Traverse City State Hospital", "url": "https://northernmichiganhistory.com/traverse-city-regional-psychiatric-hospital/", "kind": "web", "accessed": "2026-10-14" },
+    { "id": "src.village_history", "title": "The Village at Grand Traverse Commons: History", "url": "https://www.thevillagetc.com/history/", "kind": "web", "accessed": "2026-10-14" },
+    { "id": "src.ticker_2013", "title": "Traverse Ticker: Cordia opens doors to Traverse City past, future", "url": "https://www.traverseticker.com/news/cordia-opens-doors-to-traverse-city-past-future", "kind": "web", "accessed": "2026-10-14" }
+  ],
+  "facts": [
+    { "id": "nma.fact.opened_1885", "text": "Northern Michigan Asylum opened on November 30, 1885, Michigan's third state asylum.", "sources": ["src.nmh_overview"], "confidence": "high" },
+    { "id": "nma.fact.lloyd_kirkbride", "text": "Building 50 was designed by Gordon W. Lloyd on the Kirkbride plan in a Victorian Italianate style.", "sources": ["src.rootsweb_b50", "src.sah_archipedia_gtc"], "confidence": "high" },
+    { "id": "nma.fact.markham_brick", "text": "Building 50 was built of yellow-white brick from the Markham brickworks in Greilickville.", "sources": ["src.rootsweb_b50"], "confidence": "high" },
+    { "id": "nma.fact.bay_views", "text": "Building 50 is a shallow V; its wings step back so every ward had a view of Grand Traverse Bay.", "sources": ["src.sah_archipedia_gtc"], "confidence": "high" },
+    { "id": "nma.fact.women_north", "text": "The north wings of Building 50 were originally for women and the south wings for men.", "sources": ["src.rootsweb_b50"], "confidence": "high" },
+    { "id": "nma.fact.tunnels_ventilation", "text": "Tunnels under the grounds were part of the ventilation system; fans forced air through them into the basements and up flues.", "sources": ["src.village_history"], "confidence": "high" },
+    { "id": "nma.fact.closed_1989", "text": "The hospital closed in 1989 after serving more than 50,000 patients.", "sources": ["src.nmh_overview"], "confidence": "high" },
+    { "id": "nma.fact.thick_walls", "text": "Parts of Building 50 have walls more than two feet thick.", "sources": ["src.ticker_2013"], "confidence": "high" },
+    { "id": "mi.fact.grand_rapids_furniture_city", "text": "Grand Rapids, Michigan, was known as Furniture City around the turn of the twentieth century.", "sources": [], "confidence": "medium", "todo": "add a source" }
+  ]
+}

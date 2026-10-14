@@ -1,0 +1,15 @@
+{
+  "restorations": [
+    { "id": "station.restore.lamp",    "verb": "place",   "object": "station.lamp" },
+    { "id": "station.restore.logbook", "verb": "place",   "object": "station.logbook" },
+    { "id": "station.restore.bell",    "verb": "place",   "object": "station.bell" },
+    { "id": "station.restore.chair",   "verb": "upright", "object": "station.chair" }
+  ],
+  "groups": [
+    {
+      "id": "station.all",
+      "members": ["station.restore.lamp", "station.restore.logbook", "station.restore.bell", "station.restore.chair"],
+      "on_complete": { "echo": "echo.night_nurse" }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "echoes": [
+    {
+      "id": "echo.night_nurse",
+      "trigger_group": "station.all",
+      "tint": [1.0, 0.86, 0.66],
+      "center": [17.3, 2.95],
+      "caption": "doc.caption_night_nurse",
+      "glimpse": { "radius": 7.0, "chance_per_s": 0.1 },
+      "figures": [
+        { "pose": "standing", "pos": [17.3, 0.0, 2.95], "rot_deg": 9, "cap": true, "reach": 0.9, "routine": "write", "character": "story.char.margaret_hale" }
+      ]
+    }
+  ]
+}
