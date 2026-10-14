@@ -58,7 +58,8 @@ func toggle_flashlight() -> void:
 	flashlight.visible = _flash_on
 
 
-func _unhandled_input(e: InputEvent) -> void:
+## Mouse look reads input before the UI does, so no on-screen control can swallow it.
+func _input(e: InputEvent) -> void:
 	if not enabled:
 		return
 	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:

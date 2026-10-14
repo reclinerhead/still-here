@@ -94,6 +94,7 @@ func _build_viewfinder(root: Control) -> void:
 	var dot := ColorRect.new()
 	dot.color = Color(0.85, 0.82, 0.74, 0.7)
 	dot.size = Vector2(6, 6)
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dot.set_anchors_preset(Control.PRESET_CENTER)
 	dot.position = Vector2(-3, -3)
 	viewfinder.add_child(dot)

@@ -35,6 +35,7 @@ func _ready() -> void:
 	crosshair = ColorRect.new()
 	crosshair.color = Color(0.85, 0.82, 0.74, 0.6)
 	crosshair.size = Vector2(4, 4)
+	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	crosshair.set_anchors_preset(Control.PRESET_CENTER)
 	crosshair.position = Vector2(-2, -2)
 	root.add_child(crosshair)
@@ -136,12 +137,14 @@ func _build_note(root: Control) -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.add_child(hint)
 	note_panel.visible = false
+	note_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(note_panel)
 
 
 func _build_title(root: Control) -> void:
 	title = ColorRect.new()
 	(title as ColorRect).color = Color(0.02, 0.025, 0.022, 0.93)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(title)
 	var v := VBoxContainer.new()
