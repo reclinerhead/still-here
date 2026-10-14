@@ -13,7 +13,9 @@ var is_open := false
 var mode := "camera"
 var bertha := Bertha.new()
 var _cool := 0.0
-var _pending: Array = []      # [{bubble: Label, text: String}]
+var _pending: Array = []      # [{label: Label, text: String, entry: Dictionary}]
+## Every photo taken: {tex, title, text, subject, state, pending, before}. The gallery reads this.
+var entries: Array = []
 var _stream_label: Label = null
 var _stream_t := 0.0
 
@@ -161,7 +163,7 @@ func _build_chat(root: Control) -> void:
 	chat_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	chat_list.add_theme_constant_override("separation", 12)
 	chat_scroll.add_child(chat_list)
-	v.add_child(_type_label("E: another photo   ·   C: put the phone away", 13, Color(0.55, 0.56, 0.52)))
+	v.add_child(_type_label("E: another photo   ·   C: put the phone away   ·   G: all photos", 13, Color(0.55, 0.56, 0.52)))
 
 
 func _bubble(mine: bool) -> VBoxContainer:
@@ -269,11 +271,22 @@ func _take_photo() -> void:
 	var tw := create_tween()
 	flash_rect.color.a = 0.9
 	tw.tween_property(flash_rect, "color:a", 0.0, 0.45)
-	img.resize(320, int(320.0 * img.get_height() / img.get_width()), Image.INTERPOLATE_BILINEAR)
-	_show_exchange(ImageTexture.create_from_image(img), title, ans["text"])
+	img.resize(640, int(640.0 * img.get_height() / img.get_width()), Image.INTERPOLATE_BILINEAR)
+	var tex := ImageTexture.create_from_image(img)
+	# pair with the most recent photo of the same subject taken in a different state
+	var before: Texture2D = null
+	if sid != "":
+		for i in range(entries.size() - 1, -1, -1):
+			var e: Dictionary = entries[i]
+			if e["subject"] == sid and e["state"] != ans["state"]:
+				before = e["tex"]
+				break
+	var entry := {"tex": tex, "title": title, "text": ans["text"], "subject": sid, "state": ans["state"], "pending": not has_signal_here(), "before": before}
+	entries.append(entry)
+	_show_exchange(tex, title, ans["text"], entry)
 
 
-func _show_exchange(tex: Texture2D, title: String, text: String) -> void:
+func _show_exchange(tex: Texture2D, title: String, text: String, entry: Dictionary) -> void:
 	mode = "chat"
 	chat.visible = true
 	var me := _bubble(true)
@@ -300,7 +313,7 @@ func _show_exchange(tex: Texture2D, title: String, text: String) -> void:
 	else:
 		label.text = "No signal. Photo saved. Bertha will answer when you're back in range."
 		label.add_theme_color_override("font_color", Color(0.55, 0.56, 0.52))
-		_pending.append({"label": label, "text": text})
+		_pending.append({"label": label, "text": text, "entry": entry})
 	_scroll_down()
 
 
@@ -330,6 +343,7 @@ func _process(dt: float) -> void:
 			_scroll_down()
 	if not _pending.is_empty() and player and has_signal_here():
 		for p in _pending:
+			p["entry"]["pending"] = false
 			p["label"].text = p["text"]
 			p["label"].add_theme_color_override("font_color", Color(0.86, 0.83, 0.75))
 		hud.toast("Signal's back. Bertha answered %d photo%s." % [_pending.size(), "" if _pending.size() == 1 else "s"])

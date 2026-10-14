@@ -180,7 +180,7 @@ func _build_title(root: Control) -> void:
 	lede.custom_minimum_size = Vector2(760, 0)
 	v.add_child(lede)
 	var keys := Label.new()
-	keys.text = "WASD walk  ·  Shift hurry  ·  Mouse look  ·  E use  ·  F flashlight  ·  C phone  ·  Esc release mouse\n\nClick to enter the ward"
+	keys.text = "WASD walk  ·  Shift hurry  ·  Mouse look  ·  E use  ·  F flashlight  ·  C phone  ·  G photos  ·  Esc release mouse\n\nClick to enter the ward"
 	keys.add_theme_font_override("font", font_type)
 	keys.add_theme_font_size_override("font_size", 15)
 	keys.add_theme_color_override("font_color", Color(0.6, 0.6, 0.55))

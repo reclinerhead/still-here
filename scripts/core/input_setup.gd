@@ -10,6 +10,7 @@ const KEYS := {
 	"interact": [KEY_E],
 	"flashlight": [KEY_F],
 	"phone": [KEY_C],
+	"gallery": [KEY_G],
 }
 
 

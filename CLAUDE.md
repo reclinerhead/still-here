@@ -15,7 +15,7 @@ scripts/core/            data loading, state store, condition language, input ma
 scripts/world/           ward builder, props, materials, procedural textures, debris,
                          restorations, echoes, presence
 scripts/player/          first-person controller, flashlight, interaction ray
-scripts/phone/           phone camera UI and Bertha's answer assembly
+scripts/phone/           phone camera UI, photo gallery, and Bertha's answer assembly
 scripts/ui/              HUD: prompt, toasts, captions, found notes, title
 scripts/audio/           procedurally generated ambience and one-shots
 shaders/ghost.gdshader   the echo dissolve shader
@@ -44,7 +44,8 @@ Godot binary on Windows: wherever `Godot_v4.7.2-stable_win64.exe` was unzipped. 
 - **Preview Bertha** for any subject and state:
   `godot --headless --path . -- --bertha=station [--restore] [--photos=2]`
 - **Screenshot** from a pose, optionally restored or with a phone photo:
-  `godot --path . -- --shot=user://shot.png --pose=x,y,z,yaw,pitch [--restore] [--photo] [--no-flashlight] [--frames=40]`
+  `godot --path . -- --shot=user://shot.png --pose=x,y,z,yaw,pitch [--restore] [--photo] [--before-after] [--gallery] [--no-flashlight] [--frames=40]`
+  (`--before-after` photographs, restores everything, photographs again; `--gallery` opens the gallery on the last photo.)
   Useful poses: corridor `1.2,0,0,-90,-3`; station `17.6,0,-0.9,180,-12`; day room `18,0,0.6,0,4`.
 - Procedural textures are cached in `user://tex_cache`. Bump `CACHE_VERSION` in `proc_tex.gd` after changing a generator.
 

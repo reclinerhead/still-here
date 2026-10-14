@@ -9,7 +9,7 @@ const PER_SLOT := {"ident": 1, "observation": 2, "history": 1, "hint": 1, "speci
 const FALLBACK := "core.fallback"
 
 
-## Returns {"text": String, "effects": Array, "subject": String}.
+## Returns {"text": String, "effects": Array, "subject": String, "state": String}.
 ## Evaluated at the moment of the photo, so a delayed answer still describes what was photographed.
 func answer(subject_id: String) -> Dictionary:
 	var sid := subject_id if subject_id != "" else FALLBACK
@@ -47,7 +47,9 @@ func answer(subject_id: String) -> Dictionary:
 		for f in chosen.get(slot, []):
 			parts.append(f["text"])
 			effects.append_array(f.get("effects", []))
-	return {"text": "\n\n".join(parts), "effects": effects, "subject": sid}
+	# the ident fragment names the state the subject was in (used to pair before/after photos)
+	var state_key: String = chosen["ident"][0]["id"] if chosen.has("ident") else ""
+	return {"text": "\n\n".join(parts), "effects": effects, "subject": sid, "state": state_key}
 
 
 const MAX_PARTS := 4

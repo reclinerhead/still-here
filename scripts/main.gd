@@ -14,12 +14,14 @@ const Presence = preload("res://scripts/world/presence.gd")
 const PlayerScript = preload("res://scripts/player/player.gd")
 const Hud = preload("res://scripts/ui/hud.gd")
 const Phone = preload("res://scripts/phone/phone.gd")
+const Gallery = preload("res://scripts/phone/gallery.gd")
 const Ambience = preload("res://scripts/audio/ambience.gd")
 
 var env: Environment
 var player: PlayerScript
 var hud: Hud
 var phone: Phone
+var gallery: Gallery
 var restore: RestoreSystem
 var audio: Ambience
 var echoes: Dictionary = {}
@@ -69,6 +71,10 @@ func _ready() -> void:
 	phone.echoes = echoes
 	add_child(phone)
 	phone.attach(player)
+	gallery = Gallery.new()
+	gallery.hud = hud
+	gallery.phone = phone
+	add_child(gallery)
 
 	var presence := Presence.new()
 	presence.env = env
@@ -113,6 +119,12 @@ func _unhandled_input(e: InputEvent) -> void:
 		if (e is InputEventMouseButton or e is InputEventKey) and e.is_pressed():
 			_start()
 		return
+	if gallery.is_open:
+		if e.is_action_pressed("gallery") or e.is_action_pressed("ui_cancel"):
+			gallery.close()
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			get_viewport().set_input_as_handled()
+		return
 	if hud.note_open:
 		if e.is_action_pressed("interact") or e.is_action_pressed("shoot"):
 			hud.hide_note()
@@ -128,6 +140,11 @@ func _unhandled_input(e: InputEvent) -> void:
 		hud.pause.visible = true
 	elif e.is_action_pressed("phone"):
 		phone.toggle()
+	elif e.is_action_pressed("gallery"):
+		if phone.is_open:
+			phone.toggle()
+		gallery.open()
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif e.is_action_pressed("flashlight"):
 		player.toggle_flashlight()
 		audio.thunk()
@@ -140,7 +157,7 @@ func _unhandled_input(e: InputEvent) -> void:
 
 func _process(_dt: float) -> void:
 	player.enabled = started and not hud.note_open and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-	if not started or hud.note_open or phone.is_open:
+	if not started or hud.note_open or phone.is_open or gallery.is_open:
 		hud.set_prompt("")
 		hud.crosshair.visible = not phone.is_open and started
 	else:
@@ -190,19 +207,26 @@ func _screenshot(args: Dictionary) -> void:
 	if args.has("no-flashlight"):
 		player.toggle_flashlight()
 	if args.has("restore"):
-		restore.force_all()
-		State.presence = State.presence_target
-		for eid in echoes:
-			echoes[eid].start()
-			echoes[eid].t = 10.0
+		_restore_now()
 	var frames := int(args.get("frames", "90"))
 	for i in frames:
 		await get_tree().process_frame
 	if args.has("photo"):
-		phone.toggle()
-		await get_tree().process_frame
-		phone.use()
-		for i in 240:
+		await _snap()
+	# --before-after: photo, restore everything, photo again (for checking the gallery pairing)
+	if args.has("before-after"):
+		await _snap(12)
+		_restore_now()
+		for i in 12:
+			await get_tree().process_frame
+		await _snap(12)
+	if args.has("gallery"):
+		if phone.is_open:
+			phone.toggle()
+		gallery.open()
+		if not phone.entries.is_empty():
+			gallery._show_detail(phone.entries[-1])
+		for i in 10:
 			await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
@@ -210,3 +234,22 @@ func _screenshot(args: Dictionary) -> void:
 	img.save_png(path)
 	print("Saved screenshot: ", ProjectSettings.globalize_path(path))
 	get_tree().quit()
+
+
+func _restore_now() -> void:
+	restore.force_all()
+	State.presence = State.presence_target
+	for eid in echoes:
+		echoes[eid].start()
+		echoes[eid].t = 10.0
+
+
+func _snap(wait := 240) -> void:
+	if not phone.is_open:
+		phone.toggle()
+	if phone.mode == "chat":
+		phone.use()
+	await get_tree().process_frame
+	phone.use()
+	for i in wait:
+		await get_tree().process_frame

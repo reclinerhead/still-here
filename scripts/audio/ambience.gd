@@ -1,6 +1,6 @@
 extends Node
 ## Procedurally generated sound, so the prototype ships with no audio files:
-## a cold drone and air for the abandoned ward, a warm chord that rises with presence,
+## a cold drone and air for the abandoned ward, a soft warm pad that rises with presence,
 ## and one-shots for the bell, handling objects and the camera shutter.
 
 const RATE := 22050
@@ -11,29 +11,48 @@ var _warm: AudioStreamPlayer
 var _ding: AudioStreamPlayer
 var _thunk: AudioStreamPlayer
 var _shutter: AudioStreamPlayer
-var _ticker: AudioStreamPlayer
+var _started := false
+var _pad_task := -1
 
 
 func _ready() -> void:
 	_make_room_bus()
 	_drone = _player(_loop_drone(), -14.0)
 	_air = _player(_loop_air(), -20.0)
-	_warm = _player(_loop_warm(), -80.0)
+	_warm = _player(null, -80.0)
 	_ding = _player(_one_ding(), -6.0)
 	_thunk = _player(_one_thunk(), -8.0)
 	_shutter = _player(_one_shutter(), -10.0)
+	# the pad takes a moment to synthesize, so build it off the main thread
+	_pad_task = WorkerThreadPool.add_task(func(): _pad_ready.call_deferred(_loop_pad()))
+
+
+func _exit_tree() -> void:
+	if _pad_task != -1:
+		WorkerThreadPool.wait_for_task_completion(_pad_task)
+
+
+func _pad_ready(stream: AudioStreamWAV) -> void:
+	if not is_inside_tree():
+		return
+	_warm.stream = stream
+	if _started:
+		_warm.play()
 
 
 func start() -> void:
+	_started = true
 	_drone.play()
 	_air.play()
-	_warm.play()
+	if _warm.stream:
+		_warm.play()
 
 
 func set_presence(p: float) -> void:
 	_drone.volume_db = lerpf(-14.0, -30.0, p)
 	_air.volume_db = lerpf(-20.0, -32.0, p)
-	_warm.volume_db = -80.0 if p < 0.01 else lerpf(-34.0, -15.0, p)
+	# subtle but noticeable: the pad sits well under everything else, even fully restored
+	_warm.volume_db = -80.0 if p < 0.01 else lerpf(-40.0, -25.0, sqrt(p))
 
 
 func ding() -> void: _ding.play()
@@ -65,10 +84,10 @@ func _player(stream: AudioStream, db: float) -> AudioStreamPlayer:
 	return p
 
 
-static func _wav(samples: PackedFloat32Array, loop: bool) -> AudioStreamWAV:
+static func _wav(samples: PackedFloat32Array, loop: bool, rate := RATE) -> AudioStreamWAV:
 	var s := AudioStreamWAV.new()
 	s.format = AudioStreamWAV.FORMAT_16_BITS
-	s.mix_rate = RATE
+	s.mix_rate = rate
 	s.stereo = false
 	var bytes := PackedByteArray()
 	bytes.resize(samples.size() * 2)
@@ -111,18 +130,52 @@ static func _loop_air() -> AudioStreamWAV:
 	return _wav(out, true)
 
 
-static func _loop_warm() -> AudioStreamWAV:
-	var n := RATE * 5
+## A slow, warm pad: G, E minor, C, D, four seconds each, crossfading into one another.
+## Mellow tones (a fundamental with soft overtones), each voice doubled and detuned a
+## quarter-hertz for a gentle chorus. 16 s loop; every frequency completes whole cycles.
+static func _loop_pad() -> AudioStreamWAV:
+	const PAD_RATE := 16000
+	const LOOP_S := 16.0
+	const TABLE := 2048
+	var table := PackedFloat32Array()
+	table.resize(TABLE)
+	for i in TABLE:
+		var x := TAU * i / TABLE
+		table[i] = sin(x) + 0.22 * sin(2.0 * x) + 0.06 * sin(3.0 * x)
+	var chords := [
+		[98.0, 196.0, 247.0, 294.0],   # G
+		[82.0, 165.0, 196.0, 247.0],   # E minor
+		[65.0, 131.0, 196.0, 262.0],   # C
+		[73.0, 147.0, 185.0, 220.0],   # D
+	]
+	var n := int(PAD_RATE * LOOP_S)
 	var out := PackedFloat32Array()
 	out.resize(n)
-	var freqs := [196.0, 247.0, 294.0, 392.0]
+	var step := LOOP_S / chords.size()
+	for c in chords.size():
+		var center := step * (c + 0.5)
+		for k in chords[c].size():
+			var f: float = chords[c][k]
+			var amp := 0.5 if k == 0 else 0.32
+			var half := step * 0.85
+			var i0 := int((center - half) * PAD_RATE)
+			var count := int(half * 2.0 * PAD_RATE)
+			for det in [-0.25, 0.25]:
+				var inc: float = (f + det) * TABLE / PAD_RATE
+				for j in count:
+					var i := posmod(i0 + j, n)
+					var dt := (float(j) / PAD_RATE) - half
+					var e := cos(PI * 0.5 * dt / half)
+					# phase from the absolute sample index keeps the loop seamless
+					var ph := fmod(inc * i, TABLE)
+					out[i] += table[int(ph)] * amp * e * e
+	var peak := 0.0
 	for i in n:
-		var t := float(i) / RATE
-		var v := 0.0
-		for f in freqs:
-			v += sin(TAU * f * t) * (0.18 if f < 300.0 else 0.1)
-		out[i] = v * (0.85 + 0.15 * sin(TAU * 0.2 * t))
-	return _wav(out, true)
+		peak = maxf(peak, absf(out[i]))
+	var g := 0.55 / maxf(peak, 0.001)
+	for i in n:
+		out[i] *= g
+	return _wav(out, true, PAD_RATE)
 
 
 static func _one_ding() -> AudioStreamWAV:
