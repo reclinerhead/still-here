@@ -99,5 +99,5 @@ func _update_focus() -> void:
 	q.exclude = [get_rid()]
 	var hit := space.intersect_ray(q)
 	focus = null
-	if hit and hit["collider"].has_meta("interact"):
+	if hit and is_instance_valid(hit["collider"]) and hit["collider"].has_meta("interact"):
 		focus = hit["collider"]

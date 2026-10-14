@@ -78,8 +78,8 @@ func _make_slot(oid: String, o: Dictionary, r: Dictionary) -> void:
 	add_child(decal)
 
 
-func prompt_for(body: Object) -> String:
-	if body == null or not body.has_meta("interact"):
+func prompt_for(body) -> String:
+	if not is_instance_valid(body) or not body.has_meta("interact"):
 		return ""
 	var m: Dictionary = body.get_meta("interact")
 	var oid: String = m.get("object", "")
@@ -96,8 +96,8 @@ func prompt_for(body: Object) -> String:
 	return ""
 
 
-func interact(body: Object) -> void:
-	if body == null or not body.has_meta("interact"):
+func interact(body) -> void:
+	if not is_instance_valid(body) or not body.has_meta("interact"):
 		return
 	var m: Dictionary = body.get_meta("interact")
 	var oid: String = m.get("object", "")
@@ -131,8 +131,10 @@ func _place(oid: String, rid: String) -> void:
 	item.position = Data.vec3(o["home"]["pos"])
 	item.rotation = Data.rot_deg(o["home"].get("rot_deg", [0, 0, 0]))
 	item.visible = true
-	slots[oid].queue_free()
-	slots.erase(oid)
+	# switch the slot off rather than freeing it: the player's focus may still point at it this frame
+	var slot: StaticBody3D = slots[oid]
+	slot.remove_meta("interact")
+	slot.collision_layer = 0
 	State.set_object_state(oid, "placed")
 	var model := item.get_child(1)
 	if model.has_node("Light"):
