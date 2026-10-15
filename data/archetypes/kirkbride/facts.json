@@ -1,0 +1,12 @@
+{
+  "archetype": "kirkbride",
+  "sources": [
+    { "id": "src.kirkbride_construction", "title": "Thomas Story Kirkbride, On the Construction, Organization, and General Arrangements of Hospitals for the Insane", "url": "https://www.kirkbridebuildings.com/about/cogahi/?c=23", "kind": "book", "accessed": "2026-10-14" }
+  ],
+  "facts": [
+    { "id": "kirkbride.fact.ward_dining_dumbwaiter", "text": "Each Kirkbride ward was to have its own dining room with a dumb waiter connected to the kitchen.", "sources": ["src.kirkbride_construction"], "confidence": "high" },
+    { "id": "kirkbride.fact.attendant_room", "text": "Each ward was to have an associated dormitory communicating with an attendant's chamber.", "sources": ["src.kirkbride_construction"], "confidence": "high" },
+    { "id": "kirkbride.fact.single_rooms", "text": "Each ward was to have single lodging rooms for patients opening off a corridor.", "sources": ["src.kirkbride_construction"], "confidence": "high" },
+    { "id": "kirkbride.fact.moral_treatment_surroundings", "text": "The Kirkbride approach held that pleasant, home-like surroundings supported recovery.", "sources": ["src.nmh_overview"], "confidence": "medium" }
+  ]
+}

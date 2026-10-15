@@ -1,0 +1,44 @@
+{
+  "id": "w3n",
+  "name": "Ward 3 North",
+  "parent": "nma.b50",
+  "basis": "invented",
+  "note": "Layout follows Kirkbride's published ward recommendations at roughly real scale, not a measured drawing of Building 50.",
+  "dims": { "length": 36, "corridor_half": 1.8, "room_depth": 3.7, "wall": 0.2, "height": 4.0, "wainscot": 1.25 },
+  "north": [
+    { "x0": 0,  "x1": 2,  "type": "solid" },
+    { "x0": 2,  "x1": 5,  "type": "room", "door": "locked", "win": "glass" },
+    { "x0": 5,  "x1": 8,  "type": "room", "door": "open",   "win": "boarded", "name": "room2" },
+    { "x0": 8,  "x1": 11, "type": "room", "door": "locked", "win": "glass" },
+    { "x0": 11, "x1": 14, "type": "solid" },
+    { "x0": 14, "x1": 22, "type": "alcove", "win": "bay", "name": "dayroom" },
+    { "x0": 22, "x1": 25, "type": "solid" },
+    { "x0": 25, "x1": 28, "type": "room", "door": "open",   "win": "glass", "name": "room4" },
+    { "x0": 28, "x1": 31, "type": "room", "door": "locked", "win": "boarded" },
+    { "x0": 31, "x1": 34, "type": "room", "door": "locked", "win": "glass" },
+    { "x0": 34, "x1": 36, "type": "solid" }
+  ],
+  "south": [
+    { "x0": 0,  "x1": 3,  "type": "solid" },
+    { "x0": 3,  "x1": 11, "type": "room", "door": "open", "door_at": 9.5, "win": "pair", "name": "dining" },
+    { "x0": 11, "x1": 15, "type": "solid" },
+    { "x0": 15, "x1": 21, "type": "alcove", "name": "station" },
+    { "x0": 21, "x1": 24, "type": "solid" },
+    { "x0": 24, "x1": 28, "type": "room", "door": "locked", "win": "glass" },
+    { "x0": 28, "x1": 34, "type": "room", "door": "locked", "win": "glass" },
+    { "x0": 34, "x1": 36, "type": "solid" }
+  ],
+  "station": [18, 2.5],
+  "lamps": { "start": 2, "spacing": 4, "light_every": 2 },
+  "debris": [
+    [0.5, 35.5, -1.6, 1.6, 90],
+    [5.2, 7.8, -5.3, -2.0, 16],
+    [25.2, 27.8, -5.3, -2.0, 16],
+    [3.2, 10.8, 2.0, 5.3, 26],
+    [14.2, 21.8, -5.3, -2.0, 26],
+    [15.2, 20.8, 2.7, 5.2, 12]
+  ],
+  "signal": { "dead_spaces": [] },
+  "spawn": [1.0, 0.0, 0.0],
+  "spawn_yaw_deg": -90
+}

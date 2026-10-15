@@ -1,0 +1,6 @@
+{
+  "fragments": [
+    { "id": "core.fallback.ident", "subject": "core.fallback", "slot": "ident",
+      "text": "I can see a dark, damaged interior: peeling paint, fallen plaster, debris on the floor. It's hard to tell more from this.\n\nTry getting closer to one specific thing and keeping it in the middle of the frame." }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "characters": [
+    { "id": "story.char.margaret_hale", "name": "Margaret Hale, R.N.", "role": "Night nurse, Ward 3 North", "basis": "invented",
+      "notes": "Composite. Kept the lamp on all night. Wrote people's names, never numbers." }
+  ],
+  "documents": [
+    { "id": "doc.lamp_note", "basis": "invented", "kicker": "Found in Room 2, on the floor", "title": "Desk lamp",
+      "text": "A slip of paper is folded under the base:\n\n\"Night girls: leave the lamp ON and turned toward the hall. If somebody wakes up frightened, the first thing they should see is that someone is here.  — M.H.\"" },
+    { "id": "doc.day_book", "basis": "invented", "kicker": "Found in the dining room dumbwaiter", "title": "Ward day book, 1953",
+      "text": "Mar. 4  Mrs. D. ate all of her supper. First time since February.\n\nMar. 9  Snow to the sills. Played hymns on the day room piano after lunch. Eleven ladies sang.\n\nMar. 12  Nobody on this ward is a number. Write their names.  — M. Hale, R.N." },
+    { "id": "doc.bell", "basis": "invented", "kicker": "Found in Room 4, by the radiator", "title": "Brass call bell",
+      "text": "Someone scratched words into the base with a hairpin:\n\n\"RING ONCE & I'LL COME\"" },
+    { "id": "doc.caption_night_nurse", "basis": "invented", "kind": "caption",
+      "text": "March 1953, a little after two in the morning. The lamp is turned toward the hall. Margaret Hale is writing the night report, and somewhere down the corridor, someone is awake. She will hear the bell before it finishes ringing." }
+  ]
+}

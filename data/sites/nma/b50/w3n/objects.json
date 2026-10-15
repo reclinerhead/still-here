@@ -1,0 +1,58 @@
+{
+  "objects": [
+    {
+      "id": "station.lamp",
+      "type": "desk_lamp",
+      "basis": "invented",
+      "start_state": "missing",
+      "start": { "pos": [7.2, 0.12, -4.7], "rot_deg": [0, 35, 90] },
+      "home": { "pos": [15.9, 1.11, 2.3], "rot_deg": [0, 200, 0] },
+      "document": "doc.lamp_note",
+      "dust_shadow": "round"
+    },
+    {
+      "id": "station.logbook",
+      "type": "day_book",
+      "basis": "invented",
+      "start_state": "missing",
+      "start": { "pos": [4.2, 0.92, 5.31], "rot_deg": [0, 8, 0] },
+      "home": { "pos": [17.4, 1.11, 2.28], "rot_deg": [0, 4, 0] },
+      "document": "doc.day_book",
+      "dust_shadow": "rect"
+    },
+    {
+      "id": "station.bell",
+      "type": "call_bell",
+      "basis": "invented",
+      "start_state": "missing",
+      "start": { "pos": [26.9, 0.0, -5.0], "rot_deg": [0, 0, 0] },
+      "home": { "pos": [18.9, 1.11, 2.3], "rot_deg": [0, 0, 0] },
+      "document": "doc.bell",
+      "dust_shadow": "round_small"
+    },
+    {
+      "id": "station.chair",
+      "type": "chair",
+      "basis": "inferred",
+      "start_state": "toppled",
+      "start": { "pos": [18.9, 0.25, 3.6], "rot_deg": [-90, 23, 0] },
+      "upright": { "pos": [18.5, 0.0, 3.2], "rot_deg": [0, 0, 0] }
+    }
+  ],
+  "props": [
+    { "model": "bed", "pos": [5.65, 0, -3.9], "rot_deg": [0, 0, 0] },
+    { "model": "bed", "pos": [25.65, 0, -3.9], "rot_deg": [0, 0, 0] },
+    { "model": "radiator", "pos": [27.4, 0, -5.35], "rot_deg": [0, 0, 0] },
+    { "model": "table", "pos": [6.6, 0, 3.7], "rot_deg": [0, 0, 0] },
+    { "model": "chair", "pos": [5.4, 0, 2.9], "rot_deg": [0, 189, 0] },
+    { "model": "chair", "pos": [7.9, 0.22, 2.7], "rot_deg": [90, 46, 0] },
+    { "model": "chair", "pos": [6.6, 0, 4.6], "rot_deg": [0, 9, 0] },
+    { "model": "dumbwaiter", "pos": [4.2, 0, 5.5], "rot_deg": [0, 0, 0] },
+    { "model": "counter", "pos": [17.6, 0, 2.3], "rot_deg": [0, 0, 0] },
+    { "model": "shelves", "pos": [17.4, 0, 5.29], "rot_deg": [0, 0, 0] },
+    { "model": "piano", "pos": [15.2, 0, -5.18], "rot_deg": [0, 0, 0] },
+    { "model": "makers_plate", "pos": [15.2, 0.95, -4.872], "rot_deg": [0, 0, 0] },
+    { "model": "bench", "pos": [18.0, 0, -4.85], "rot_deg": [0, 0, 0] },
+    { "model": "radiator", "pos": [21.2, 0, -5.35], "rot_deg": [0, 0, 0] }
+  ]
+}
