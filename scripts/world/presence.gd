@@ -38,7 +38,7 @@ func _process(dt: float) -> void:
 	env.ambient_light_energy = lerpf(lerpf(0.08, 0.22, p), 0.03, u)
 	env.ambient_light_color = AMB_COLD.lerp(AMB_WARM, p).lerp(AMB_TUNNEL, u)
 	if moon:
-		moon.light_volumetric_fog_energy = 3.0 * (1.0 - u)
+		moon.light_volumetric_fog_energy = 1.2 * (1.0 - u)
 	Mats.set_tint(p)
 	for l in lamps:
 		if not l["on"] and p >= l["threshold"] - 0.001:

@@ -30,13 +30,16 @@
   ],
   "station": [18, 2.5],
   "lamps": { "start": 2, "spacing": 4, "light_every": 2 },
+  "debris_note": "[x0, x1, z0, z1, count, walls]: walls lists the sides that are walls (n = z0, s = z1, w = x0, e = x1); paint flakes and crumbs drift against those.",
   "debris": [
-    [0.5, 35.5, -1.6, 1.6, 90],
-    [5.2, 7.8, -5.3, -2.0, 16],
-    [25.2, 27.8, -5.3, -2.0, 16],
-    [3.2, 10.8, 2.0, 5.3, 26],
-    [14.2, 21.8, -5.3, -2.0, 26],
-    [15.2, 20.8, 2.7, 5.2, 12]
+    [0.5, 14.0, -1.6, 1.6, 35, "ns"],
+    [14.0, 22.0, -1.6, 1.6, 20, ""],
+    [22.0, 35.5, -1.6, 1.6, 35, "ns"],
+    [5.2, 7.8, -5.3, -2.0, 16, "nswe"],
+    [25.2, 27.8, -5.3, -2.0, 16, "nswe"],
+    [3.2, 10.8, 2.0, 5.3, 26, "nswe"],
+    [14.2, 21.8, -5.3, -2.0, 26, "nwe"],
+    [15.2, 20.8, 2.7, 5.2, 12, "swe"]
   ],
   "stair": { "x0": 25.1, "x1": 26.9, "z0": 2.6, "z1": 7.6, "bottom": -3.4, "steps": 16, "note": "The old bath room. Stairs down to the service tunnel." },
   "tunnel": {
@@ -47,12 +50,27 @@
     "collapse_z": 51.0,
     "stencil": { "pos": [24.61, -2.3, 16.0], "text": "← BLDG 50\nLAUNDRY →" },
     "puddles": 9,
-    "debris": [[25.2, 26.8, 8.1, 50.0, 26]],
+    "debris": [[25.2, 26.8, 8.1, 50.0, 26, "we"]],
     "water": { "near": [26.0, 4.0], "near_radius": 14.0 }
   },
   "triggers": [
     { "id": "seen_stairs", "box": [24.0, 28.0, 1.9, 2.6], "y": [-0.5, 0.5], "toast": "Stairs going down. Somewhere below, water is running." },
     { "id": "entered_tunnel", "box": [24.4, 27.6, 8.5, 53.6], "y": [-4.0, -2.5], "toast": "The old service tunnels. The sound of water is everywhere and nowhere." }
+  ],
+  "ceiling_holes": [
+    [7.2, 8.8, -1.4, 0.2],
+    [22.8, 24.6, -0.6, 1.0],
+    [30.6, 31.8, -1.5, -0.3],
+    [19.4, 21.2, -4.8, -3.4],
+    [4.4, 6.0, 3.2, 4.8],
+    [5.6, 6.8, -4.7, -3.7]
+  ],
+  "dust": [
+    { "box": [0.2, 35.8, -1.7, 1.7], "y": [0.2, 3.8], "amount": 1000 },
+    { "box": [14.2, 21.8, -5.4, -2.0], "y": [0.2, 3.8], "amount": 450 },
+    { "box": [3.2, 10.8, 2.0, 5.4], "y": [0.2, 3.8], "amount": 450 },
+    { "box": [15.2, 20.8, 2.0, 5.4], "y": [0.2, 3.8], "amount": 250 },
+    { "box": [25.1, 26.9, 7.8, 53.0], "y": [-3.3, -1.2], "amount": 600 }
   ],
   "signal": { "dead_spaces": [[24.4, 27.6, 5.8, 53.6]] },
   "spawn": [1.0, 0.0, 0.0],
