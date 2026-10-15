@@ -37,7 +37,13 @@ docs/                    design and data model docs
 - Conditions use the tiny language in `scripts/core/conditions.gd`: `missing(id)`, `placed(id)`, `carried(id)`, `state(id) == "x"`, `done(id)`, `hint_level(id) >= n`, `photos(id) >= n`, `revealed(id)`, `flag(name)`, `presence() >= x`, combined with `and`, `or`, `not`.
 
 ## Running and checking
-Godot binary on Windows: wherever `Godot_v4.7.2-stable_win64.exe` was unzipped. Examples below use `godot`.
+Godot on Todd's PC (bluejay) lives in `D:\Tools\GODOT4`. When running commands, use the **console** build so errors and `print` output reach the terminal:
+- From Windows (PowerShell/cmd): `D:\Tools\GODOT4\Godot_v4.7.2-stable_win64_console.exe`
+- From WSL: `/mnt/d/Tools/GODOT4/Godot_v4.7.2-stable_win64_console.exe` (pass Windows-style paths to `--path` and `--shot`, e.g. via `wslpath -w`)
+
+The plain `Godot_v4.7.2-stable_win64.exe` is for the editor and prints nothing to the terminal. Examples below use `godot` for whichever console exe applies.
+
+Save screenshots to `shots/` in the project (ignored by git) with an absolute path, e.g. `--shot=D:/path/to/still-here/shots/station.png`, then open the PNG to look at it. `user://` also works but lands in `%APPDATA%\Godot\app_userdata\Still Here\`.
 
 - Play: open the project in the editor and press F5, or `godot --path .`
 - **Headless smoke test** (catches script errors): `godot --headless --path . --quit-after 200`
