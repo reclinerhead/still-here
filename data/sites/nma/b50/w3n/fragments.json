@@ -2,7 +2,8 @@
   "subjects": [
     { "id": "station", "title": "Nurses' station", "pos": [17.6, 1.0, 2.4], "radius": 1.6, "max_distance": 5.0, "center": 0.5,
       "hints_for": ["station.restore.lamp", "station.restore.logbook", "station.restore.bell"] },
-    { "id": "piano", "title": "Day room piano", "pos": [15.2, 0.9, -5.0], "radius": 0.9, "max_distance": 5.5, "center": 0.55 },
+    { "id": "piano", "title": "Day room piano", "pos": [15.2, 0.9, -5.0], "radius": 0.9, "max_distance": 5.5, "center": 0.55,
+      "hints_for": ["dayroom.restore.hymnal"] },
     { "id": "piano_plate", "title": "Maker's plate", "pos": [15.2, 0.95, -4.87], "radius": 0.08, "max_distance": 1.6, "center": 0.3, "detail": true },
     { "id": "bay_window", "title": "Bay window", "pos": [18.0, 2.0, -5.6], "radius": 1.4, "max_distance": 6.0, "center": 0.45 },
     { "id": "dumbwaiter", "title": "Dumbwaiter", "pos": [4.2, 1.3, 5.45], "radius": 0.5, "max_distance": 4.0, "center": 0.45,
@@ -11,7 +12,9 @@
     { "id": "room2", "title": "Single room", "pos": [5.65, 0.5, -3.9], "radius": 1.0, "max_distance": 4.0, "center": 0.5,
       "hints_for": ["station.restore.lamp"] },
     { "id": "room4", "title": "Single room", "pos": [25.65, 0.5, -3.9], "radius": 1.0, "max_distance": 4.0, "center": 0.5,
-      "hints_for": ["station.restore.bell"] }
+      "hints_for": ["station.restore.bell"] },
+    { "id": "tunnel_stencil", "title": "Tunnel stencil", "pos": [24.61, -2.3, 16.0], "radius": 0.6, "max_distance": 4.5, "center": 0.5 },
+    { "id": "tunnel", "title": "Service tunnel", "area": [24.4, 27.6, 5.8, 53.6] }
   ],
   "fragments": [
     { "id": "station.ident", "subject": "station", "slot": "ident", "when": "not done(station.all)",
@@ -42,12 +45,23 @@
       "effects": [ { "type": "ghost_in_photo", "echo": "echo.night_nurse", "reveal": 0.36 }, { "type": "set_flag", "flag": "ghost_shot_station" } ],
       "text": "One more thing. There seems to be someone standing behind the counter in your photo, a woman in white with a small cap. Is this a recent picture? As far as I know, this building has been closed since 1989." },
 
-    { "id": "piano.ident", "subject": "piano", "slot": "ident",
+    { "id": "piano.ident", "subject": "piano", "slot": "ident", "when": "not placed(dayroom.hymnal)",
       "text": "This looks like an upright piano, probably a hundred years old or more. The case is water-stained and the music shelf is empty." },
+    { "id": "piano.ident_restored", "subject": "piano", "slot": "ident", "when": "placed(dayroom.hymnal)",
+      "text": "Same upright piano, and now there's a hymnal on top, open to a tune called New Britain. Most people know it as the melody of Amazing Grace." },
     { "id": "piano.history", "subject": "piano", "slot": "history", "facts": ["kirkbride.fact.moral_treatment_surroundings"],
       "text": "Pianos were common in asylum day rooms of this era. The Kirkbride approach held that comfortable, home-like surroundings helped patients recover, and music and gatherings were part of that idea." },
-    { "id": "piano.obs_dust", "subject": "piano", "slot": "observation",
+    { "id": "piano.obs_dust", "subject": "piano", "slot": "observation", "when": "not placed(dayroom.hymnal)",
       "text": "There's a clean rectangle in the dust on top, as if a book sat there for a long time." },
+    { "id": "piano.obs_warmer", "subject": "piano", "slot": "observation", "when": "placed(dayroom.hymnal) and photos(piano) >= 1",
+      "text": "The room around it looks warmer than in your earlier photo. Whoever put that book back, it seems to belong there." },
+    { "id": "piano.hint_hymnal_1", "subject": "piano", "slot": "hint", "when": "not placed(dayroom.hymnal) and hint_level(dayroom.restore.hymnal) == 1",
+      "text": "A day room piano would usually have had a hymnal or two on it, for singing after lunch or on a Sunday." },
+    { "id": "piano.hint_hymnal_2", "subject": "piano", "slot": "hint", "when": "not placed(dayroom.hymnal) and hint_level(dayroom.restore.hymnal) >= 2",
+      "text": "Books like that tend to wander. If it isn't anywhere on this floor, someone may have carried it somewhere below the ward." },
+    { "id": "piano.ghost", "subject": "piano", "slot": "special", "when": "not done(dayroom.all) and not flag(ghost_shot_dayroom)",
+      "effects": [ { "type": "ghost_in_photo", "echo": "echo.dayroom", "reveal": 0.36 }, { "type": "set_flag", "flag": "ghost_shot_dayroom" } ],
+      "text": "One more thing. There appear to be several people standing around the piano in your photo, five or six at least. Is this a recent picture? As far as I know, this building has been closed since 1989." },
 
     { "id": "plate.ident", "subject": "piano_plate", "slot": "ident",
       "text": "A small brass maker's plate. Most of the lettering has worn away, but I can make out \"GRAND RAPIDS, MICH.\" and part of a serial number." },
@@ -83,6 +97,16 @@
     { "id": "room4.history", "subject": "room4", "slot": "history", "facts": ["kirkbride.fact.single_rooms"],
       "text": "Kirkbride recommended single rooms for most patients, opening off a wide, well-lit corridor." },
     { "id": "room4.obs_bell", "subject": "room4", "slot": "observation", "when": "missing(station.bell)",
-      "text": "There's a small brass dome on the floor by the radiator. It looks like a desk bell." }
+      "text": "There's a small brass dome on the floor by the radiator. It looks like a desk bell." },
+
+    { "id": "stencil.ident", "subject": "tunnel_stencil", "slot": "ident",
+      "text": "Stenciled lettering on brick: arrows pointing one way to \"Bldg 50\" and the other to \"Laundry.\"" },
+    { "id": "stencil.history", "subject": "tunnel_stencil", "slot": "history", "facts": ["nma.fact.tunnels_ventilation"],
+      "text": "This looks like one of the service tunnels under the hospital grounds. They were part of the ventilation system: big fans pushed fresh air through them into the basements and up flues inside the walls." },
+
+    { "id": "tunnel.ident", "subject": "tunnel", "slot": "ident",
+      "text": "A long barrel-vaulted tunnel in yellow-tan brick, with old pipes along the walls and bare bulbs down the middle." },
+    { "id": "tunnel.history", "subject": "tunnel", "slot": "history", "facts": ["nma.fact.markham_brick"],
+      "text": "The brick looks like the same yellow-white kind used for Building 50 above, which was fired at the Markham brickworks in Greilickville." }
   ]
 }

@@ -14,6 +14,9 @@ var station_x := 18.0
 
 ## [{globe: MeshInstance3D, mat: StandardMaterial3D, light: OmniLight3D|null, threshold: float}]
 var lamps: Array = []
+var moon: DirectionalLight3D
+## Openings cut in the ward floor, as [x0, x1, z0, z1] (the stairwell down to the tunnel).
+var floor_holes: Array = []
 
 const LOCKED_MSGS := [
 	"Locked. The ward key ring was taken too.",
@@ -32,6 +35,9 @@ func build(z: Dictionary) -> void:
 	H = d["height"]
 	WAIN = d["wainscot"]
 	station_x = z.get("station", [18, 0])[0]
+	if z.has("stair"):
+		var st: Dictionary = z["stair"]
+		floor_holes.append([st["x0"], st["x1"], st["z0"], CH + D + T])
 	_build_side(z["north"], -1.0)
 	_build_side(z["south"], 1.0)
 	_floor_ceiling()
@@ -44,6 +50,12 @@ func build(z: Dictionary) -> void:
 # --- boxes -----------------------------------------------------------------
 
 func box(a: Vector3, b: Vector3, mat: Material, solid := true, shadow := true) -> MeshInstance3D:
+	return make_box(self, a, b, mat, solid, shadow)
+
+
+## An axis-aligned box between two corners, optionally with a matching collider. Shared with
+## the tunnel builder.
+static func make_box(parent: Node3D, a: Vector3, b: Vector3, mat: Material, solid := true, shadow := true) -> MeshInstance3D:
 	var mn := Vector3(minf(a.x, b.x), minf(a.y, b.y), minf(a.z, b.z))
 	var mx := Vector3(maxf(a.x, b.x), maxf(a.y, b.y), maxf(a.z, b.z))
 	var size := mx - mn
@@ -57,7 +69,7 @@ func box(a: Vector3, b: Vector3, mat: Material, solid := true, shadow := true) -
 	mi.position = (mn + mx) * 0.5
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.gi_mode = GeometryInstance3D.GI_MODE_STATIC
-	add_child(mi)
+	parent.add_child(mi)
 	if solid:
 		var body := StaticBody3D.new()
 		body.collision_layer = 1
@@ -68,7 +80,7 @@ func box(a: Vector3, b: Vector3, mat: Material, solid := true, shadow := true) -
 		cs.shape = sh
 		body.add_child(cs)
 		body.position = mi.position
-		add_child(body)
+		parent.add_child(body)
 	return mi
 
 
@@ -220,7 +232,21 @@ func _door_mesh(p: Node3D, s: float) -> void:
 
 func _floor_ceiling() -> void:
 	var zmax := CH + D + T
-	box(Vector3(-0.6, -0.3, -zmax), Vector3(L + 0.6, 0, zmax), Mats.m("floor"))
+	# the floor is cut into rectangles around any holes; triplanar mapping keeps the tiles lined up
+	var rects: Array = [[-0.6, L + 0.6, -zmax, zmax]]
+	for hole in floor_holes:
+		var next: Array = []
+		for r in rects:
+			if hole[0] >= r[1] or hole[1] <= r[0] or hole[2] >= r[3] or hole[3] <= r[2]:
+				next.append(r)
+				continue
+			next.append([r[0], hole[0], r[2], r[3]])
+			next.append([hole[1], r[1], r[2], r[3]])
+			next.append([maxf(r[0], hole[0]), minf(r[1], hole[1]), r[2], hole[2]])
+			next.append([maxf(r[0], hole[0]), minf(r[1], hole[1]), hole[3], r[3]])
+		rects = next
+	for r in rects:
+		box(Vector3(r[0], -0.3, r[2]), Vector3(r[1], 0, r[3]), Mats.m("floor"))
 	box(Vector3(-0.6, H, -zmax), Vector3(L + 0.6, H + 0.3, zmax), Mats.m("ceiling"))
 
 
@@ -285,9 +311,10 @@ func _lamps(cfg: Dictionary) -> void:
 ## The night outside: a dim sky behind the windows and moonlight that only gets in through them.
 func _night() -> void:
 	var far := CH + D + T + 5.0
+	# the sky stops short of the ground so the tunnel can run underneath it
 	for s in [-1.0, 1.0]:
-		box(Vector3(-6, -3, s * far), Vector3(L + 6, H + 8, s * (far + 0.2)), Mats.m("night"), false, false)
-	var moon := DirectionalLight3D.new()
+		box(Vector3(-6, -0.6, s * far), Vector3(L + 6, H + 8, s * (far + 0.2)), Mats.m("night"), false, false)
+	moon = DirectionalLight3D.new()
 	moon.light_color = Color(0.55, 0.66, 0.9)
 	moon.light_energy = 1.1
 	moon.shadow_enabled = true

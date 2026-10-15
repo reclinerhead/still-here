@@ -164,11 +164,15 @@ func _upright(oid: String, rid: String) -> void:
 
 func _complete(rid: String) -> void:
 	State.complete_restoration(rid)
-	var left := 0
-	for r in Data.restorations:
-		if not State.done.has(r):
-			left += 1
-	toast.emit("The ward feels a little lighter." if left > 0 else "Everything at the station is back where it belongs.")
+	# a group this restoration just finished announces itself; otherwise the ward feels lighter
+	for gid in Data.groups:
+		var g: Dictionary = Data.groups[gid]
+		if g["members"].has(rid) and State.done.has(gid):
+			var msg: String = g.get("on_complete", {}).get("toast", "")
+			if msg != "":
+				toast.emit(msg)
+				return
+	toast.emit("The ward feels a little lighter.")
 
 
 ## For screenshots and tests: complete every restoration instantly.

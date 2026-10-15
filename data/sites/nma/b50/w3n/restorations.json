@@ -3,13 +3,19 @@
     { "id": "station.restore.lamp",    "verb": "place",   "object": "station.lamp" },
     { "id": "station.restore.logbook", "verb": "place",   "object": "station.logbook" },
     { "id": "station.restore.bell",    "verb": "place",   "object": "station.bell" },
-    { "id": "station.restore.chair",   "verb": "upright", "object": "station.chair" }
+    { "id": "station.restore.chair",   "verb": "upright", "object": "station.chair" },
+    { "id": "dayroom.restore.hymnal",  "verb": "place",   "object": "dayroom.hymnal" }
   ],
   "groups": [
     {
       "id": "station.all",
       "members": ["station.restore.lamp", "station.restore.logbook", "station.restore.bell", "station.restore.chair"],
-      "on_complete": { "echo": "echo.night_nurse" }
+      "on_complete": { "echo": "echo.night_nurse", "toast": "Everything at the station is back where it belongs." }
+    },
+    {
+      "id": "dayroom.all",
+      "members": ["dayroom.restore.hymnal"],
+      "on_complete": { "echo": "echo.dayroom", "toast": "The hymnal is back on the piano, where it belongs." }
     }
   ]
 }

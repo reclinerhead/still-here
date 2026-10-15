@@ -222,6 +222,8 @@ func _pick_subject() -> String:
 	var space: PhysicsDirectSpaceState3D = player.get_world_3d().direct_space_state
 	for sid in Data.subjects:
 		var s: Dictionary = Data.subjects[sid]
+		if s.has("area"):
+			continue
 		var p: Vector3 = Data.vec3(s["pos"])
 		if cam.is_position_behind(p):
 			continue
@@ -240,7 +242,20 @@ func _pick_subject() -> String:
 		if score < best_score:
 			best_score = score
 			best = sid
+	if best == "":
+		best = _area_subject()
 	return best
+
+
+## A subject for a whole place (the tunnel), chosen by where the player stands when nothing
+## specific is in frame. "area" is [x0, x1, z0, z1].
+func _area_subject() -> String:
+	var p: Vector3 = player.global_position
+	for sid in Data.subjects:
+		var a: Array = Data.subjects[sid].get("area", [])
+		if a.size() == 4 and p.x >= a[0] and p.x <= a[1] and p.z >= a[2] and p.z <= a[3]:
+			return sid
+	return ""
 
 
 func _take_photo() -> void:

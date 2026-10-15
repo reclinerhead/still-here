@@ -7,6 +7,7 @@ extends Node3D
 const InputSetup = preload("res://scripts/core/input_setup.gd")
 const EnvFactory = preload("res://scripts/world/env_factory.gd")
 const WardBuilder = preload("res://scripts/world/ward_builder.gd")
+const TunnelBuilder = preload("res://scripts/world/tunnel_builder.gd")
 const Debris = preload("res://scripts/world/debris.gd")
 const RestoreSystem = preload("res://scripts/world/restore_system.gd")
 const EchoGroup = preload("res://scripts/world/echo_group.gd")
@@ -38,6 +39,9 @@ func _ready() -> void:
 	var ward := WardBuilder.new()
 	add_child(ward)
 	ward.build(Data.zone)
+	var tunnel := TunnelBuilder.new()
+	add_child(tunnel)
+	tunnel.build(Data.zone)
 
 	var debris := Debris.new()
 	add_child(debris)
@@ -81,6 +85,8 @@ func _ready() -> void:
 	presence.lamps = ward.lamps
 	presence.debris = debris
 	presence.audio = audio
+	presence.player = player
+	presence.moon = ward.moon
 	add_child(presence)
 
 	restore.toast.connect(hud.toast)
@@ -163,6 +169,22 @@ func _process(_dt: float) -> void:
 	else:
 		hud.crosshair.visible = true
 		hud.set_prompt(restore.prompt_for(player.focus))
+	if started:
+		_check_triggers()
+
+
+## One-time toasts from the zone's trigger boxes ([x0, x1, z0, z1], with a y range).
+func _check_triggers() -> void:
+	var p := player.global_position
+	for t in Data.zone.get("triggers", []):
+		var key: String = "trigger." + t["id"]
+		if State.has_flag(key):
+			continue
+		var b: Array = t["box"]
+		var y: Array = t.get("y", [-100, 100])
+		if p.x >= b[0] and p.x <= b[1] and p.z >= b[2] and p.z <= b[3] and p.y >= y[0] and p.y <= y[1]:
+			State.set_flag(key)
+			hud.toast(t["toast"])
 
 
 # --- preview Bertha ----------------------------------------------------------
@@ -245,6 +267,9 @@ func _restore_now() -> void:
 
 
 func _snap(wait := 240) -> void:
+	# the phone ignores the shutter while it recovers from the last photo
+	while phone._cool > 0.0:
+		await get_tree().process_frame
 	if not phone.is_open:
 		phone.toggle()
 	if phone.mode == "chat":

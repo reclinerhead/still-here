@@ -24,7 +24,7 @@
     { "x0": 11, "x1": 15, "type": "solid" },
     { "x0": 15, "x1": 21, "type": "alcove", "name": "station" },
     { "x0": 21, "x1": 24, "type": "solid" },
-    { "x0": 24, "x1": 28, "type": "room", "door": "locked", "win": "glass" },
+    { "x0": 24, "x1": 28, "type": "room", "door": "open",   "win": "glass", "name": "stair" },
     { "x0": 28, "x1": 34, "type": "room", "door": "locked", "win": "glass" },
     { "x0": 34, "x1": 36, "type": "solid" }
   ],
@@ -38,7 +38,23 @@
     [14.2, 21.8, -5.3, -2.0, 26],
     [15.2, 20.8, 2.7, 5.2, 12]
   ],
-  "signal": { "dead_spaces": [] },
+  "stair": { "x0": 25.1, "x1": 26.9, "z0": 2.6, "z1": 7.6, "bottom": -3.4, "steps": 16, "note": "The old bath room. Stairs down to the service tunnel." },
+  "tunnel": {
+    "basis": "inferred",
+    "note": "Sketched from explorers' photos of the real tunnels, not from plans.",
+    "x": 26.0, "floor": -3.4, "radius": 1.45, "axis_y": -2.35, "z0": 7.6, "z1": 53.6,
+    "bulbs": [13, 19, 25, 31, 37, 43, 49], "light_every": 2, "flicker": [25],
+    "collapse_z": 51.0,
+    "stencil": { "pos": [24.61, -2.3, 16.0], "text": "← BLDG 50\nLAUNDRY →" },
+    "puddles": 9,
+    "debris": [[25.2, 26.8, 8.1, 50.0, 26]],
+    "water": { "near": [26.0, 4.0], "near_radius": 14.0 }
+  },
+  "triggers": [
+    { "id": "seen_stairs", "box": [24.0, 28.0, 1.9, 2.6], "y": [-0.5, 0.5], "toast": "Stairs going down. Somewhere below, water is running." },
+    { "id": "entered_tunnel", "box": [24.4, 27.6, 8.5, 53.6], "y": [-4.0, -2.5], "toast": "The old service tunnels. The sound of water is everywhere and nowhere." }
+  ],
+  "signal": { "dead_spaces": [[24.4, 27.6, 5.8, 53.6]] },
   "spawn": [1.0, 0.0, 0.0],
   "spawn_yaw_deg": -90
 }
