@@ -21,6 +21,8 @@ static func build(model: String) -> Node3D:
 		"desk_lamp": _desk_lamp(root)
 		"ledger": _ledger(root)
 		"call_bell": _call_bell(root)
+		"hymnal": _hymnal(root)
+		"tub": _tub(root)
 		"makers_plate": _b(root, Vector3(0.14, 0.05, 0.006), Vector3.ZERO, Mats.m("brass"))
 		_: push_error("Unknown prop model: " + model)
 	return root
@@ -179,6 +181,22 @@ static func _radiator(r: Node3D) -> void:
 	collide(r, Vector3(0.85, 0.9, 0.2), Vector3(0, 0.45, 0))
 
 
+## An iron bathtub on four feet, its enamel rust-stained under the old tap.
+static func _tub(r: Node3D) -> void:
+	var en := Mats.m("enamel")
+	_b(r, Vector3(0.75, 0.04, 1.5), Vector3(0, 0.16, 0), en)
+	for x in [-0.35, 0.35]:
+		_b(r, Vector3(0.05, 0.5, 1.5), Vector3(x, 0.39, 0), en)
+	for z in [-0.725, 0.725]:
+		_b(r, Vector3(0.75, 0.5, 0.05), Vector3(0, 0.39, z), en)
+	_b(r, Vector3(0.3, 0.004, 0.55), Vector3(0, 0.182, -0.42), Mats.m("rust"))
+	_b(r, Vector3(0.04, 0.3, 0.004), Vector3(0, 0.45, -0.698), Mats.m("rust"))
+	for x in [-0.28, 0.28]:
+		for z in [-0.6, 0.6]:
+			_cyl(r, 0.035, 0.05, 0.14, Vector3(x, 0.07, z), Mats.m("iron"))
+	collide(r, Vector3(0.75, 0.64, 1.5), Vector3(0, 0.32, 0))
+
+
 static func _dumbwaiter(r: Node3D) -> void:
 	# opening in the wall: dark recess, wood frame, a little shelf
 	_b(r, Vector3(0.72, 0.82, 0.02), Vector3(0, 1.3, -0.005), Mats.m("recess"))
@@ -212,6 +230,15 @@ static func _ledger(r: Node3D) -> void:
 	_b(r, Vector3(0.32, 0.05, 0.24), Vector3(0, 0.025, 0), Mats.m("book_cover"))
 	_b(r, Vector3(0.3, 0.04, 0.235), Vector3(0.012, 0.025, 0), Mats.m("pages"))
 	_b(r, Vector3(0.12, 0.002, 0.07), Vector3(0, 0.051, 0), Mats.m("pages"))
+
+
+## A small dark red hymnal, swollen from the damp: warped boards around a bulging page block.
+static func _hymnal(r: Node3D) -> void:
+	var cover := Mats.m("book_cover")
+	_b(r, Vector3(0.16, 0.01, 0.23), Vector3(0, 0.005, 0), cover)
+	_b(r, Vector3(0.15, 0.034, 0.22), Vector3(0.005, 0.027, 0), Mats.m("pages"), Vector3(0, 0, -0.03))
+	_b(r, Vector3(0.16, 0.01, 0.23), Vector3(0, 0.05, 0), cover, Vector3(0.04, 0, -0.035))
+	_b(r, Vector3(0.012, 0.054, 0.23), Vector3(-0.077, 0.028, 0), cover)
 
 
 static func _call_bell(r: Node3D) -> void:

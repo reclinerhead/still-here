@@ -9,6 +9,10 @@ static var _cache: Dictionary = {}
 ## Materials whose colour is tinted by presence (cold and grey -> warm and clean).
 const TINTED := ["wall_upper", "wall_lower", "floor", "ceiling"]
 
+## Pale yellow-tan Markham brick, and the darker, muddier pavers of the tunnel floor.
+const MARKHAM := [Color(0.62, 0.56, 0.43), Color(0.56, 0.5, 0.38), Color(0.66, 0.6, 0.47), Color(0.5, 0.45, 0.34), Color(0.6, 0.55, 0.43), Color(0.46, 0.41, 0.31)]
+const PAVERS := [Color(0.34, 0.31, 0.26), Color(0.29, 0.26, 0.22), Color(0.38, 0.34, 0.28), Color(0.25, 0.23, 0.19)]
+
 
 static func m(name: String) -> StandardMaterial3D:
 	if not _cache.has(name):
@@ -62,6 +66,23 @@ static func _make(name: String) -> StandardMaterial3D:
 		"door":
 			var gen := func(): return ProcTex.wood(Color(0.33, 0.25, 0.17), 17)
 			return _tri(ProcTex.cached("door", gen), null, 0.75, 1.0)
+		"brick":
+			var gen := func(): return ProcTex.brick(41, MARKHAM, Color(0.2, 0.18, 0.15))
+			return _tri(ProcTex.cached("brick", gen), ProcTex.normal_from("brick", gen, 4.0), 0.78, 1.25)
+		"brick_vault":
+			# mapped along the curve (UVs in 0.8 m units), darkened toward the floor by vertex colour
+			var gen := func(): return ProcTex.brick(41, MARKHAM, Color(0.2, 0.18, 0.15))
+			var mat := _tri(ProcTex.cached("brick", gen), ProcTex.normal_from("brick", gen, 4.0), 0.55, 1.0)
+			mat.uv1_triplanar = false
+			mat.uv1_world_triplanar = false
+			mat.vertex_color_use_as_albedo = true
+			return mat
+		"pavers":
+			var gen := func(): return ProcTex.brick(63, PAVERS, Color(0.13, 0.12, 0.1), 8, 4, 256)
+			return _tri(ProcTex.cached("pavers", gen), ProcTex.normal_from("pavers", gen, 3.0), 0.4, 1.25)
+		"concrete": return _flat(Color(0.38, 0.36, 0.31), 0.9)
+		"grit": return _flat(Color(0.24, 0.21, 0.17), 1.0)
+		"pipe": return _flat(Color(0.3, 0.22, 0.16), 0.6, 0.45)
 		"rail": return _flat(Color(0.25, 0.2, 0.15), 0.6)
 		"rust": return _flat(Color(0.33, 0.21, 0.14), 0.85, 0.3)
 		"iron": return _flat(Color(0.17, 0.18, 0.17), 0.6, 0.6)
@@ -85,7 +106,8 @@ static func _make(name: String) -> StandardMaterial3D:
 			var mat := StandardMaterial3D.new()
 			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			mat.albedo_color = Color(0.55, 0.65, 0.75, 0.12)
-			mat.roughness = 0.08
+			# old, grimy glass: the flashlight shows in it as a soft smear, not a mirror-bright spot
+			mat.roughness = 0.3
 			mat.metallic = 0.3
 			return mat
 		"night":

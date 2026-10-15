@@ -10,6 +10,9 @@ static func make() -> Environment:
 	e.ambient_light_energy = 0.08
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
 	e.tonemap_exposure = 1.5
+	# reflections in wet floors and puddles
+	e.ssr_enabled = true
+	e.ssr_max_steps = 64
 	e.ssao_enabled = true
 	e.ssao_intensity = 1.6
 	e.glow_enabled = true

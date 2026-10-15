@@ -85,7 +85,12 @@ func _figure(f: Dictionary) -> Node3D:
 		g.add_child(pv)
 		arms.append(pv)
 	g.position = Data.vec3(f["pos"])
-	g.rotation.y = deg_to_rad(float(f.get("rot_deg", 0)))
+	# figures face -Z; "face": [x, z] turns one toward a point (the piano, a window)
+	if f.has("face"):
+		var to := Vector2(float(f["face"][0]) - g.position.x, float(f["face"][1]) - g.position.z)
+		g.rotation.y = atan2(-to.x, -to.y)
+	else:
+		g.rotation.y = deg_to_rad(float(f.get("rot_deg", 0)))
 	g.set_meta("arms", arms)
 	g.set_meta("head", head)
 	g.set_meta("routine", f.get("routine", "still"))

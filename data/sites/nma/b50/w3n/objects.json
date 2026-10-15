@@ -37,6 +37,16 @@
       "start_state": "toppled",
       "start": { "pos": [18.9, 0.25, 3.6], "rot_deg": [-90, 23, 0] },
       "upright": { "pos": [18.5, 0.0, 3.2], "rot_deg": [0, 0, 0] }
+    },
+    {
+      "id": "dayroom.hymnal",
+      "type": "hymnal",
+      "basis": "invented",
+      "start_state": "missing",
+      "start": { "pos": [26.4, -3.4, 48.6], "rot_deg": [0, 40, 0] },
+      "home": { "pos": [15.2, 1.34, -5.12], "rot_deg": [0, 4, 0] },
+      "document": "doc.hymnal",
+      "dust_shadow": "rect"
     }
   ],
   "props": [
@@ -53,6 +63,7 @@
     { "model": "piano", "pos": [15.2, 0, -5.18], "rot_deg": [0, 0, 0] },
     { "model": "makers_plate", "pos": [15.2, 0.95, -4.872], "rot_deg": [0, 0, 0] },
     { "model": "bench", "pos": [18.0, 0, -4.85], "rot_deg": [0, 0, 0] },
-    { "model": "radiator", "pos": [21.2, 0, -5.35], "rot_deg": [0, 0, 0] }
+    { "model": "radiator", "pos": [21.2, 0, -5.35], "rot_deg": [0, 0, 0] },
+    { "model": "tub", "pos": [24.55, 0, 4.2], "rot_deg": [0, 0, 0] }
   ]
 }

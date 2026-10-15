@@ -2,7 +2,7 @@ extends RefCounted
 ## Procedural textures. Generated once, then cached as PNGs in user://tex_cache.
 ## Bump CACHE_VERSION whenever a generator changes.
 
-const CACHE_VERSION := 4
+const CACHE_VERSION := 6
 const S := 256
 
 
@@ -153,6 +153,83 @@ static func wood(base: Color, seed: int) -> Image:
 			var c := base.darkened(0.05 + grain * 0.18 + g * 0.1)
 			var r := rng.randf_range(-0.015, 0.015)
 			img.set_pixel(x, y, Color(c.r + r, c.g + r, c.b + r))
+	return img
+
+
+## Running-bond brickwork covering 0.8 m per repeat: `rows` courses of `per_row` bricks (12 x 4
+## gives 20 x 6.7 cm bricks), one tint per brick from the palette, recessed mortar, speckle,
+## and dark streaks where water ran down.
+static func brick(seed: int, palette: Array, mortar: Color, rows := 12, per_row := 4, size := 384) -> Image:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var n := _noise(seed, 0.02, 4)
+	var fine := _noise(seed + 7, 0.15, 2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var rh := size / rows
+	var bw := size / per_row
+	var tints := {}
+	for row in rows:
+		for b in per_row:
+			var c: Color = palette[rng.randi() % palette.size()]
+			tints[Vector2i(row, b)] = c.darkened(rng.randf_range(-0.06, 0.2))
+	for y in size:
+		var row := y / rh
+		var yy := y % rh
+		var off := (row % 2) * (bw / 2)
+		for x in size:
+			var xs := (x + off) % size
+			var xx := xs % bw
+			var edge := mini(mini(xx, bw - 1 - xx), mini(yy, rh - 1 - yy))
+			var g := _sn(n, x, y, size)
+			var c: Color
+			if edge < 2:
+				c = mortar.darkened(clampf(g * 0.35, -0.15, 0.35))
+			else:
+				c = tints[Vector2i(row, xs / bw)]
+				var f := _sn(fine, x, y, size)
+				c = c.darkened(clampf(0.04 + g * 0.25 + f * 0.1 + (0.1 if edge < 4 else 0.0), -0.12, 0.6))
+			var r := rng.randf_range(-0.025, 0.025)
+			img.set_pixel(x, y, Color(c.r + r, c.g + r, c.b + r))
+	for i in size * 3:
+		var px := rng.randi_range(0, size - 1)
+		var py := rng.randi_range(0, size - 1)
+		var k := rng.randf_range(-0.25, 0.2)
+		var c := img.get_pixel(px, py)
+		img.set_pixel(px, py, c.darkened(k) if k > 0 else c.lightened(-k))
+	for i in 14:
+		var sx := rng.randi_range(0, size - 1)
+		var length := rng.randi_range(60, 240)
+		var sy := rng.randi_range(0, size - 1)
+		var amount := rng.randf_range(0.08, 0.25)
+		for t in length:
+			var py := (sy + t) % size
+			var k := amount * (1.0 - float(t) / length)
+			for w in 4:
+				var px := (sx + w) % size
+				img.set_pixel(px, py, img.get_pixel(px, py).darkened(k * (1.0 - w * 0.22)))
+	return img
+
+
+## Puddle decal: a dark, wet blob with a ragged, soft edge. The alpha masks the decal's
+## roughness and normal too, so the pavers underneath turn glossy and flat where it's wet.
+static func puddle(seed: int) -> Image:
+	var P := 128
+	var img := Image.create(P, P, false, Image.FORMAT_RGBA8)
+	var n := _noise(seed, 0.05, 3)
+	for y in P:
+		for x in P:
+			var u := (x + 0.5) / P * 2.0 - 1.0
+			var v := (y + 0.5) / P * 2.0 - 1.0
+			var d := Vector2(u, v).length() + n.get_noise_2d(x, y) * 0.35
+			var a := 1.0 - smoothstep(0.55, 0.85, d)
+			img.set_pixel(x, y, Color(0.06, 0.05, 0.04, a * 0.9))
+	return img
+
+
+## A tiny uniform texture, for decal channels that need one value everywhere.
+static func flat(c: Color) -> Image:
+	var img := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	img.fill(c)
 	return img
 
 

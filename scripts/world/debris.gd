@@ -8,7 +8,8 @@ var pieces: Array = []   # [{node, dist, scale}]
 var origin := Vector2(18, 0)
 
 
-func scatter(zones: Array, station: Array) -> void:
+## zones: [[x0, x1, z0, z1, count], ...]. floor_y lifts everything onto a lower floor (the tunnel).
+func scatter(zones: Array, station: Array, floor_y := 0.0) -> void:
 	origin = Vector2(float(station[0]), float(station[1]))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1885
@@ -46,6 +47,7 @@ func scatter(zones: Array, station: Array) -> void:
 				mi.material_override = Mats.m("plaster")
 				mi.rotation = Vector3(rng.randf_range(-0.05, 0.05), rng.randf_range(0, TAU), rng.randf_range(-0.08, 0.08))
 				p.y = 0.015
+			p.y += floor_y
 			mi.position = p
 			add_child(mi)
 			var dist := absf(p.x - origin.x) + absf(p.z - origin.y) * 0.5

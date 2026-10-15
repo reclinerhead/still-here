@@ -11,6 +11,10 @@
     { "id": "doc.bell", "basis": "invented", "kicker": "Found in Room 4, by the radiator", "title": "Brass call bell",
       "text": "Someone scratched words into the base with a hairpin:\n\n\"RING ONCE & I'LL COME\"" },
     { "id": "doc.caption_night_nurse", "basis": "invented", "kind": "caption",
-      "text": "March 1953, a little after two in the morning. The lamp is turned toward the hall. Margaret Hale is writing the night report, and somewhere down the corridor, someone is awake. She will hear the bell before it finishes ringing." }
+      "text": "March 1953, a little after two in the morning. The lamp is turned toward the hall. Margaret Hale is writing the night report, and somewhere down the corridor, someone is awake. She will hear the bell before it finishes ringing." },
+    { "id": "doc.hymnal", "basis": "invented", "kicker": "Found in the tunnel, near the collapse", "title": "Day room hymnal",
+      "text": "Swollen from the damp, the pages stuck together. Inside the cover, in pencil:\n\n\"PROPERTY OF WARD 3 NORTH DAY ROOM. Please return to the piano.  — M.H.\"\n\nSomeone carried it a long way from home." },
+    { "id": "doc.caption_dayroom", "basis": "invented", "kind": "caption",
+      "text": "March 9, 1953. Snow to the windowsills and the radiator ticking. Eleven ladies crowd around the day room piano, and Mrs. D. sings louder than anyone. At the bay window, Ruth's mother keeps one eye on the water." }
   ]
 }
