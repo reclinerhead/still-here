@@ -180,6 +180,30 @@ static func dust_shadow(shape: String) -> Image:
 	return img
 
 
+## Flashlight beam pattern for the spotlight's projector: a hot centre a touch off-axis, a
+## dimmer corona with faint reflector rings, and a weak spill fading out at the cone's edge.
+## Stored sRGB-encoded because the engine decodes projector textures as sRGB.
+static func flashlight_beam() -> Image:
+	var B := 256
+	var img := Image.create(B, B, false, Image.FORMAT_RGBA8)
+	var n := _noise(77, 0.035, 3)
+	for y in B:
+		for x in B:
+			var u := (x + 0.5) / B * 2.0 - 1.0
+			var v := (y + 0.5) / B * 2.0 - 1.0
+			var r := Vector2(u - 0.025, v + 0.02).length()
+			var hot := exp(-pow(r / 0.13, 2.0))
+			var corona := 0.26 * exp(-pow(r / 0.33, 2.0))
+			var spill := 0.06 * (1.0 - smoothstep(0.62, 1.0, r))
+			var rings := 0.03 * exp(-pow((r - 0.26) / 0.022, 2.0)) - 0.035 * exp(-pow((r - 0.19) / 0.03, 2.0))
+			var smudge := 1.0 + n.get_noise_2d(x, y) * 0.1
+			var i := clampf((hot + corona + spill + rings) * smudge, 0.0, 1.0)
+			# the spill runs slightly warmer than the core
+			var warm := smoothstep(0.12, 0.6, r)
+			img.set_pixel(x, y, Color(i, i * (1.0 - 0.05 * warm), i * (1.0 - 0.12 * warm)).linear_to_srgb())
+	return img
+
+
 ## Lined paper for debris.
 static func paper() -> Image:
 	var img := Image.create(32, 40, false, Image.FORMAT_RGBA8)
