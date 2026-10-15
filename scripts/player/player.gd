@@ -6,9 +6,15 @@ const WALK := 1.7
 const HURRY := 3.0
 const EYE := 1.62
 const REACH := 2.6
+## Light the beam throws back off whatever it hits: strongest up close, gone by about 12 m.
+const BOUNCE := 0.55
+const BOUNCE_REACH := 12.0
+
+const ProcTex = preload("res://scripts/world/proc_tex.gd")
 
 var cam: Camera3D
 var flashlight: SpotLight3D
+var bounce: OmniLight3D
 var enabled := false
 var yaw := 0.0
 var pitch := 0.0
@@ -33,16 +39,31 @@ func _ready() -> void:
 	cam.near = 0.05
 	cam.far = 80.0
 	add_child(cam)
+	# a wide cone shaped by the beam pattern: hot spot, corona, and a faint spill past the edges of view
 	flashlight = SpotLight3D.new()
 	flashlight.position = Vector3(0.18, -0.16, 0.05)
 	flashlight.light_color = Color(1.0, 0.95, 0.85)
-	flashlight.light_energy = 7.0
-	flashlight.spot_range = 22.0
-	flashlight.spot_angle = 30.0
-	flashlight.spot_angle_attenuation = 1.2
+	flashlight.light_energy = 13.0
+	flashlight.light_projector = ProcTex.cached("flashlight", func(): return ProcTex.flashlight_beam())
+	flashlight.spot_range = 24.0
+	flashlight.spot_angle = 52.0
+	flashlight.spot_angle_attenuation = 0.6
+	flashlight.light_size = 0.03
+	flashlight.light_indirect_energy = 1.6
 	flashlight.shadow_enabled = true
-	flashlight.light_volumetric_fog_energy = 0.8
+	flashlight.light_volumetric_fog_energy = 0.6
 	cam.add_child(flashlight)
+	bounce = OmniLight3D.new()
+	bounce.top_level = true
+	bounce.light_color = Color(1.0, 0.92, 0.8)
+	bounce.light_energy = 0.0
+	bounce.light_specular = 0.0
+	bounce.light_indirect_energy = 0.0
+	bounce.light_volumetric_fog_energy = 0.0
+	bounce.omni_range = 4.0
+	bounce.shadow_enabled = true
+	bounce.shadow_blur = 2.5
+	add_child(bounce)
 
 
 func set_pose(pos: Vector3, yaw_deg: float, pitch_deg := 0.0) -> void:
@@ -56,6 +77,9 @@ func set_pose(pos: Vector3, yaw_deg: float, pitch_deg := 0.0) -> void:
 func toggle_flashlight() -> void:
 	_flash_on = not _flash_on
 	flashlight.visible = _flash_on
+	if not _flash_on:
+		bounce.light_energy = 0.0
+		bounce.visible = false
 
 
 ## Mouse look reads input before the UI does, so no on-screen control can swallow it.
@@ -88,7 +112,29 @@ func _physics_process(dt: float) -> void:
 	cam.position.y = EYE + sin(_bob) * 0.025 * minf(1.0, moving)
 	# flashlight lags slightly behind the view, like a hand-held light
 	flashlight.rotation = flashlight.rotation.lerp(Vector3.ZERO, minf(1.0, dt * 8.0))
+	_update_bounce(dt)
 	_update_focus()
+
+
+## Moves the bounce light to just off the surface the beam lands on, so a lit wall softly
+## lights the floor, ceiling and things around it, the way a real flashlight fills a room.
+func _update_bounce(dt: float) -> void:
+	var target := 0.0
+	if _flash_on:
+		var from := flashlight.global_position
+		var to := from - flashlight.global_basis.z * BOUNCE_REACH
+		var q := PhysicsRayQueryParameters3D.create(from, to, 1)
+		q.exclude = [get_rid()]
+		var hit := get_world_3d().direct_space_state.intersect_ray(q)
+		if hit:
+			var d := from.distance_to(hit["position"])
+			var spot: Vector3 = hit["position"] + hit["normal"] * 0.4
+			# snap on the first frame, then follow smoothly so the fill doesn't jitter
+			bounce.global_position = spot if bounce.light_energy < 0.01 else bounce.global_position.lerp(spot, minf(1.0, dt * 12.0))
+			bounce.omni_range = lerpf(3.0, 6.0, clampf(d / BOUNCE_REACH, 0.0, 1.0))
+			target = BOUNCE / (1.0 + 0.3 * d * d)
+	bounce.light_energy = move_toward(bounce.light_energy, target, dt * 4.0)
+	bounce.visible = bounce.light_energy > 0.005
 
 
 func _update_focus() -> void:
