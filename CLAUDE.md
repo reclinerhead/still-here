@@ -13,8 +13,8 @@ project.godot            autoloads: Data (content), State (runtime state)
 scenes/main.tscn         one node; scripts/main.gd builds everything from data
 scripts/core/            data loading, state store, condition language, input map
 scripts/world/           ward builder (with fallen ceilings), tunnel builder (stairs and service
-                         tunnel), props, materials, procedural textures, debris and paint-flake
-                         drifts, dust, restorations, echoes, presence
+                         tunnel), props (imported models or primitives), materials, procedural
+                         textures, debris and paint-flake drifts, dust, restorations, echoes, presence
 scripts/player/          first-person controller, flashlight, interaction ray
 scripts/phone/           phone camera UI, photo gallery, and Bertha's answer assembly
 scripts/ui/              HUD: prompt, toasts, captions, found notes, title
@@ -24,6 +24,8 @@ shaders/decay.gdshader   layered decay for walls, floors, ceilings and wood (see
 data/                    all content (see below)
 assets/fonts/            open-licensed fonts with their licences
 assets/textures/         CC0 PBR texture sets from Poly Haven, credited in CREDITS.md
+assets/models/           .glb props built by tools/blender/, with the textures Godot extracts from them
+tools/blender/           Blender build scripts for the models (see Models)
 docs/                    design and data model docs
 ```
 
@@ -32,7 +34,7 @@ docs/                    design and data model docs
 2. **One source of truth.** Visuals and Bertha both read `State`. Change state through `State` methods, not by poking nodes.
 3. **Honest history.** Historical claims in Bertha fragments cite fact IDs; facts cite sources. Mark anything invented `"basis": "invented"`. Never invent stories about real, named people.
 4. **Residents never interact with the player.** No eye contact, reaction or acknowledgment in any echo routine.
-5. **Placeholder art is fine.** Props are built from primitives in `scripts/world/props.gd`. Later they get replaced by Blender-scripted or CC0 models under the same model names.
+5. **Placeholder art is fine.** A prop uses `assets/models/<model>.glb` when there is one and otherwise falls back to primitives in `scripts/world/props.gd`, so the game always runs. Models replace placeholders under the same model names; data never changes.
 6. **Free assets only, and credited.** Downloaded assets must be CC0 or similarly open, get Todd's OK first, and go in `CREDITS.md`. Reference photos are reference only, never textures.
 
 ## Materials
@@ -41,6 +43,17 @@ docs/                    design and data model docs
 - Smaller things use `_pbr(set, metres, tint)`: a standard material from one set, with `metres` being the set's real-world size from Poly Haven. A few props stay flat colours.
 - **Adding a texture set:** put the three 2K JPGs (`diff`, `nor_gl`, `arm`) in `assets/textures/<set>/`, run `godot --headless --path . --import`, then edit each new `.import` to `compress/mode=2` (VRAM), `mipmaps/generate=true` and `detect_3d/compress_to=0`, plus `compress/normal_map=1` on the `nor_gl` map. Materials are built in code, so the editor can't detect these settings itself. Delete the files' entries in `.godot/imported` and import again, then credit the set.
 
+## Models
+- Props can be scripted Blender models: `tools/blender/<model>.py` builds the geometry, gives it procedural materials, bakes them to textures and exports `assets/models/<model>.glb`. Everything is generated, so a model rebuilds the same way every time. `kit.py` holds what the next props reuse: bevelled pieces with per-piece wood-grain attributes, the aged-wood, brass and dust layers, baking and export. `piano.py` is the worked example.
+- **Blender 5.2.2 LTS**, installed on bluejay at `C:\Program Files\Blender Foundation\Blender 5.2\`. Build from the project root, then import:
+  `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python tools/blender/piano.py -- --out assets/models/piano.glb`
+  then `godot --headless --path . --import`. Add `--quick` for half-size textures and fewer samples while iterating, `--maps <dir>` to keep the baked maps and `--blend <file>` to save the scene for a look in Blender.
+- Scripts write coordinates in Godot's axes (`kit.G()` converts): origin on the floor at the prop's centre, front facing +Z, the same frame as the placeholder, so data positions still fit. Pieces carry only a position (their pivot), never a rotation or scale.
+- Each atlas bakes to colour, ORM (occlusion, roughness, metal) and a tangent-space normal map. Godot extracts them next to the .glb as `<model>_<atlas>_<map>`; give their `.import` the same settings as a texture set (see Materials) once, and they keep them through rebuilds.
+- Models carry no collision. `props.gd` `COLLIDERS` holds every prop's box, for models and placeholders alike.
+- Keep wood matte (roughness around 0.9): the flashlight sits at the camera, so even 4% specular on dark varnish reads as a grey sheen, and SSR shows the room in anything glossier. Compare with the station counter under the flashlight.
+- The piano: each key is `keys/key_<midi>` (21 to 108) with its pivot on its back edge, so `rotation.x = deg_to_rad(3.5)` presses it; the lid (hinged at its back edge) and fallboard (hinged at its bottom front edge, `rotation.x = PI / 2` closes it) are separate nodes. `piano.py` reads the hymnal's slot and the maker's plate from `objects.json`: the clean rectangle in the lid's dust is baked from the hymnal's footprint and yaw, and the open fallboard's face sits behind the plate. Rebuild if either moves.
+
 ## Data files
 - Data is **JSON for now** (Godot parses it natively). The data model doc describes YAML; switching is an open question.
 - IDs are currently relative to the single zone (`station.lamp`). Full namespacing (`nma.b50.w3n.station.lamp`) comes when there is more than one zone.
@@ -48,6 +61,7 @@ docs/                    design and data model docs
 - A Bertha subject with `"area": [x0, x1, z0, z1]` instead of `pos` answers for a whole place (the tunnel) when nothing specific is in frame.
 - Echo figures take `"face": [x, z]` to turn toward a point instead of `rot_deg`. An echo's `"music"` block (melody and bass as MIDI notes) is synthesized by `ambience.gd`: a faint, muffled cue near its centre before the echo is revealed, clear after.
 - The zone's decay is data too: `debris` zones are `[x0, x1, z0, z1, count, walls]`, where `walls` names the sides that are walls (`n` = z0, `s` = z1, `w` = x0, `e` = x1) for paint flakes to drift against; `ceiling_holes` are where the plaster has come down; `dust` boxes fill the air with motes.
+- An object's `dust_shadow` (`rect`, `round`, `round_small`) is the decal left in the dust at its home; `none` when the model it sits on has the shadow baked in (the hymnal on the piano).
 - Restoration groups put their completion toast in `on_complete.toast`. One-time toasts for places live in the zone's `triggers` (a box plus a y range); the tunnel's layout, bulbs, stencil text and water are in the zone's `stair` and `tunnel` blocks.
 
 ## Running and checking

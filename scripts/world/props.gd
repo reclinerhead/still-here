@@ -1,11 +1,38 @@
 extends RefCounted
-## Builds props from primitives. Placeholder art: the plan is to replace these with
-## Blender-scripted or CC0 models later, keeping the same model names.
+## Builds props. A model exported to assets/models/<model>.glb (built by the scripts in
+## tools/blender/) is used when it exists; otherwise the prop is built from primitives here,
+## as placeholder art under the same model name.
 
 const Mats = preload("res://scripts/world/mats.gd")
+const MODELS := "res://assets/models/"
+
+## Solid collision boxes, [size, centre], for props that block walking: shared by the
+## primitive builders and the imported models, which carry no collision of their own.
+const COLLIDERS := {
+	"bed": [Vector3(0.95, 0.6, 2.0), Vector3(0, 0.3, 0)],
+	"table": [Vector3(4.2, 0.8, 0.9), Vector3(0, 0.4, 0)],
+	"counter": [Vector3(4.4, 1.1, 0.5), Vector3(0, 0.55, 0)],
+	"shelves": [Vector3(3.6, 2.2, 0.4), Vector3(0, 1.1, 0)],
+	"piano": [Vector3(1.6, 1.35, 0.9), Vector3(0, 0.67, 0.15)],
+	"bench": [Vector3(2.4, 0.48, 0.45), Vector3(0, 0.24, 0)],
+	"radiator": [Vector3(0.85, 0.9, 0.2), Vector3(0, 0.45, 0)],
+	"tub": [Vector3(0.75, 0.64, 1.5), Vector3(0, 0.32, 0)],
+}
 
 
 static func build(model: String) -> Node3D:
+	var root := _model(model)
+	if COLLIDERS.has(model):
+		collide(root, COLLIDERS[model][0], COLLIDERS[model][1])
+	return root
+
+
+static func _model(model: String) -> Node3D:
+	var path := MODELS + model + ".glb"
+	if ResourceLoader.exists(path):
+		var scene: Node3D = load(path).instantiate()
+		scene.name = model
+		return scene
 	var root := Node3D.new()
 	root.name = model
 	match model:
@@ -99,7 +126,6 @@ static func _bed(r: Node3D) -> void:
 	_cyl(r, 0.015, 0.015, 0.86, Vector3(0, 0.75, -0.95), rust, Vector3(0, 0, PI / 2))
 	for i in 5:
 		_cyl(r, 0.01, 0.01, 0.27, Vector3(-0.3 + i * 0.15, 0.885, -0.95), rust)
-	collide(r, Vector3(0.95, 0.6, 2.0), Vector3(0, 0.3, 0))
 
 
 static func _chair(r: Node3D) -> void:
@@ -120,7 +146,6 @@ static func _table(r: Node3D) -> void:
 	for x in [-2.0, 2.0]:
 		for z in [-0.38, 0.38]:
 			_b(r, Vector3(0.07, 0.73, 0.07), Vector3(x, 0.365, z), w)
-	collide(r, Vector3(4.2, 0.8, 0.9), Vector3(0, 0.4, 0))
 
 
 static func _counter(r: Node3D) -> void:
@@ -130,7 +155,6 @@ static func _counter(r: Node3D) -> void:
 	_b(r, Vector3(4.42, 0.1, 0.46), Vector3(0, 0.05, -0.03), Mats.m("black"))
 	for i in 6:
 		_b(r, Vector3(0.6, 0.7, 0.01), Vector3(-1.85 + i * 0.74, 0.5, -0.255), Mats.m("wood"))
-	collide(r, Vector3(4.4, 1.1, 0.5), Vector3(0, 0.55, 0))
 
 
 static func _shelves(r: Node3D) -> void:
@@ -145,7 +169,6 @@ static func _shelves(r: Node3D) -> void:
 	rng.seed = 50
 	for i in 7:
 		_b(r, Vector3(0.05, 0.3, 0.24), Vector3(rng.randf_range(-1.6, 1.6), 0.82, 0.02), Mats.m("book_cover"), Vector3(0, 0, rng.randf_range(-0.4, 0.4)))
-	collide(r, Vector3(3.6, 2.2, 0.4), Vector3(0, 1.1, 0))
 
 
 static func _piano(r: Node3D) -> void:
@@ -161,7 +184,6 @@ static func _piano(r: Node3D) -> void:
 	_b(r, Vector3(1.48, 0.25, 0.03), Vector3(0, 0.98, 0.285), w, Vector3(-0.15, 0, 0))
 	for x in [-0.65, 0.65]:
 		_cyl(r, 0.04, 0.03, 0.74, Vector3(x, 0.37, 0.5), w)
-	collide(r, Vector3(1.6, 1.35, 0.9), Vector3(0, 0.67, 0.15))
 
 
 static func _bench(r: Node3D) -> void:
@@ -169,7 +191,6 @@ static func _bench(r: Node3D) -> void:
 	_b(r, Vector3(2.4, 0.06, 0.45), Vector3(0, 0.45, 0), w)
 	for x in [-1.1, 1.1]:
 		_b(r, Vector3(0.06, 0.42, 0.4), Vector3(x, 0.21, 0), w)
-	collide(r, Vector3(2.4, 0.48, 0.45), Vector3(0, 0.24, 0))
 
 
 static func _radiator(r: Node3D) -> void:
@@ -178,7 +199,6 @@ static func _radiator(r: Node3D) -> void:
 		_cyl(r, 0.035, 0.035, 0.8, Vector3(-0.36 + i * 0.09, 0.48, 0), iron)
 	_b(r, Vector3(0.82, 0.06, 0.1), Vector3(0, 0.1, 0), iron)
 	_b(r, Vector3(0.82, 0.06, 0.1), Vector3(0, 0.86, 0), iron)
-	collide(r, Vector3(0.85, 0.9, 0.2), Vector3(0, 0.45, 0))
 
 
 ## An iron bathtub on four feet, its enamel rust-stained under the old tap.
@@ -194,7 +214,6 @@ static func _tub(r: Node3D) -> void:
 	for x in [-0.28, 0.28]:
 		for z in [-0.6, 0.6]:
 			_cyl(r, 0.035, 0.05, 0.14, Vector3(x, 0.07, z), Mats.m("iron"))
-	collide(r, Vector3(0.75, 0.64, 1.5), Vector3(0, 0.32, 0))
 
 
 static func _dumbwaiter(r: Node3D) -> void:

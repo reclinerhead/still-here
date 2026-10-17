@@ -46,7 +46,7 @@
       "start": { "pos": [26.4, -3.4, 48.6], "rot_deg": [0, 40, 0] },
       "home": { "pos": [15.2, 1.34, -5.12], "rot_deg": [0, 4, 0] },
       "document": "doc.hymnal",
-      "dust_shadow": "rect"
+      "dust_shadow": "none"
     }
   ],
   "props": [
