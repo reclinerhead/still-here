@@ -68,8 +68,11 @@ func _make_slot(oid: String, o: Dictionary, r: Dictionary) -> void:
 	body.set_meta("interact", {"kind": "slot", "object": oid, "restoration": r["id"]})
 	add_child(body)
 	slots[oid] = body
-	# the dust shadow: a clean silhouette where the object sat for decades
+	# the dust shadow: a clean silhouette where the object sat for decades ("none" when the
+	# surface's own model has it baked in, like the piano lid under the hymnal)
 	var shape: String = o.get("dust_shadow", "rect")
+	if shape == "none":
+		return
 	var decal := Decal.new()
 	decal.texture_albedo = ProcTex.cached("dust_" + shape, func(): return ProcTex.dust_shadow(shape))
 	decal.size = Vector3(0.62, 0.12, 0.5)

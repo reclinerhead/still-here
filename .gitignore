@@ -9,3 +9,6 @@ Thumbs.db
 
 # Screenshots taken by --shot during development
 /shots/
+
+# Python bytecode from the Blender build scripts
+__pycache__/

@@ -215,7 +215,7 @@ A specific thing in a specific place. Inherits from its type; adds specifics, pl
   home: { room: station, anchor: counter_right }   # where it belongs
   start: { state: missing, found_at: { room: room4, anchor: by_radiator } }
   document: story.doc.bell_inscription             # what reading it reveals
-  dust_shadow: round_small                          # shadow left where it belonged
+  dust_shadow: round_small                          # shadow left where it belonged (none: the model it sits on has one baked in)
 - id: dayroom.piano.plate
   type: core.type.makers_plate
   parent: dayroom.piano
