@@ -9,6 +9,7 @@ const EnvFactory = preload("res://scripts/world/env_factory.gd")
 const WardBuilder = preload("res://scripts/world/ward_builder.gd")
 const TunnelBuilder = preload("res://scripts/world/tunnel_builder.gd")
 const Debris = preload("res://scripts/world/debris.gd")
+const Dust = preload("res://scripts/world/dust.gd")
 const RestoreSystem = preload("res://scripts/world/restore_system.gd")
 const EchoGroup = preload("res://scripts/world/echo_group.gd")
 const Presence = preload("res://scripts/world/presence.gd")
@@ -46,6 +47,15 @@ func _ready() -> void:
 	var debris := Debris.new()
 	add_child(debris)
 	debris.scatter(Data.zone.get("debris", []), Data.zone.get("station", [18, 2.5]))
+	debris.drifts(Data.zone.get("debris", []), Debris.PAINT)
+	# what came down with the ceiling lies under each hole
+	var fallen: Array = []
+	for h in Data.zone.get("ceiling_holes", []):
+		fallen.append([h[0] - 0.3, h[1] + 0.3, h[2] - 0.3, h[3] + 0.3, 8, ""])
+	debris.scatter(fallen, Data.zone.get("station", [18, 2.5]))
+	debris.drifts(fallen, Debris.CEILING, 4.0)
+	for d in Data.zone.get("dust", []):
+		add_child(Dust.make(d))
 
 	audio = Ambience.new()
 	add_child(audio)

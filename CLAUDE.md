@@ -12,15 +12,18 @@ Still Here is a personal first-person exploration game built in Godot. Read `REA
 project.godot            autoloads: Data (content), State (runtime state)
 scenes/main.tscn         one node; scripts/main.gd builds everything from data
 scripts/core/            data loading, state store, condition language, input map
-scripts/world/           ward builder, tunnel builder (stairs and service tunnel), props,
-                         materials, procedural textures, debris, restorations, echoes, presence
+scripts/world/           ward builder (with fallen ceilings), tunnel builder (stairs and service
+                         tunnel), props, materials, procedural textures, debris and paint-flake
+                         drifts, dust, restorations, echoes, presence
 scripts/player/          first-person controller, flashlight, interaction ray
 scripts/phone/           phone camera UI, photo gallery, and Bertha's answer assembly
 scripts/ui/              HUD: prompt, toasts, captions, found notes, title
 scripts/audio/           procedurally generated ambience and one-shots
 shaders/ghost.gdshader   the echo dissolve shader
+shaders/decay.gdshader   layered decay for walls, floors, ceilings and wood (see Materials)
 data/                    all content (see below)
 assets/fonts/            open-licensed fonts with their licences
+assets/textures/         CC0 PBR texture sets from Poly Haven, credited in CREDITS.md
 docs/                    design and data model docs
 ```
 
@@ -30,6 +33,13 @@ docs/                    design and data model docs
 3. **Honest history.** Historical claims in Bertha fragments cite fact IDs; facts cite sources. Mark anything invented `"basis": "invented"`. Never invent stories about real, named people.
 4. **Residents never interact with the player.** No eye contact, reaction or acknowledgment in any echo routine.
 5. **Placeholder art is fine.** Props are built from primitives in `scripts/world/props.gd`. Later they get replaced by Blender-scripted or CC0 models under the same model names.
+6. **Free assets only, and credited.** Downloaded assets must be CC0 or similarly open, get Todd's OK first, and go in `CREDITS.md`. Reference photos are reference only, never textures.
+
+## Materials
+- `scripts/world/mats.gd` builds every material once, by name. Architecture is projected in world space (triplanar), so boxes need no UVs and textures line up across pieces.
+- Walls, floor, ceiling and wood use `shaders/decay.gdshader`: layer A (paint, tiles, wood) breaks away to layer B (bare plaster and brick, concrete) where a large-scale noise mask says so, worse near the floor, with grime along the broken edges and water streaks down the walls. It can repaint saturated red paint (`a_recolor`, used to turn `peeling_painted_wall` green), re-tint a whole layer (`a_colorize`, for wood) and lift dark tones (`a_gamma`). The presence tint is its `tint` parameter.
+- Smaller things use `_pbr(set, metres, tint)`: a standard material from one set, with `metres` being the set's real-world size from Poly Haven. A few props stay flat colours.
+- **Adding a texture set:** put the three 2K JPGs (`diff`, `nor_gl`, `arm`) in `assets/textures/<set>/`, run `godot --headless --path . --import`, then edit each new `.import` to `compress/mode=2` (VRAM), `mipmaps/generate=true` and `detect_3d/compress_to=0`, plus `compress/normal_map=1` on the `nor_gl` map. Materials are built in code, so the editor can't detect these settings itself. Delete the files' entries in `.godot/imported` and import again, then credit the set.
 
 ## Data files
 - Data is **JSON for now** (Godot parses it natively). The data model doc describes YAML; switching is an open question.
@@ -37,6 +47,7 @@ docs/                    design and data model docs
 - Conditions use the tiny language in `scripts/core/conditions.gd`: `missing(id)`, `placed(id)`, `carried(id)`, `state(id) == "x"`, `done(id)`, `hint_level(id) >= n`, `photos(id) >= n`, `revealed(id)`, `flag(name)`, `presence() >= x`, combined with `and`, `or`, `not`.
 - A Bertha subject with `"area": [x0, x1, z0, z1]` instead of `pos` answers for a whole place (the tunnel) when nothing specific is in frame.
 - Echo figures take `"face": [x, z]` to turn toward a point instead of `rot_deg`. An echo's `"music"` block (melody and bass as MIDI notes) is synthesized by `ambience.gd`: a faint, muffled cue near its centre before the echo is revealed, clear after.
+- The zone's decay is data too: `debris` zones are `[x0, x1, z0, z1, count, walls]`, where `walls` names the sides that are walls (`n` = z0, `s` = z1, `w` = x0, `e` = x1) for paint flakes to drift against; `ceiling_holes` are where the plaster has come down; `dust` boxes fill the air with motes.
 - Restoration groups put their completion toast in `on_complete.toast`. One-time toasts for places live in the zone's `triggers` (a box plus a y range); the tunnel's layout, bulbs, stencil text and water are in the zone's `stair` and `tunnel` blocks.
 
 ## Running and checking

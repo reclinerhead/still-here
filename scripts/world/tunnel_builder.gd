@@ -28,6 +28,7 @@ func build(z: Dictionary) -> void:
 	var debris := Debris.new()
 	add_child(debris)
 	debris.scatter(t.get("debris", []), z.get("station", [18, 0]), float(t["floor"]))
+	debris.drifts(t.get("debris", []), Debris.GRIT, 0.6, float(t["floor"]), false)
 
 
 func _box(a: Vector3, b: Vector3, mat: Material, solid := true, shadow := true) -> MeshInstance3D:

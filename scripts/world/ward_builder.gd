@@ -17,6 +17,8 @@ var lamps: Array = []
 var moon: DirectionalLight3D
 ## Openings cut in the ward floor, as [x0, x1, z0, z1] (the stairwell down to the tunnel).
 var floor_holes: Array = []
+## Places where the ceiling plaster has come down, as [x0, x1, z0, z1].
+var ceiling_holes: Array = []
 
 const LOCKED_MSGS := [
 	"Locked. The ward key ring was taken too.",
@@ -38,6 +40,7 @@ func build(z: Dictionary) -> void:
 	if z.has("stair"):
 		var st: Dictionary = z["stair"]
 		floor_holes.append([st["x0"], st["x1"], st["z0"], CH + D + T])
+	ceiling_holes = z.get("ceiling_holes", [])
 	_build_side(z["north"], -1.0)
 	_build_side(z["south"], 1.0)
 	_floor_ceiling()
@@ -230,11 +233,9 @@ func _door_mesh(p: Node3D, s: float) -> void:
 	p.add_child(knob)
 
 
-func _floor_ceiling() -> void:
-	var zmax := CH + D + T
-	# the floor is cut into rectangles around any holes; triplanar mapping keeps the tiles lined up
-	var rects: Array = [[-0.6, L + 0.6, -zmax, zmax]]
-	for hole in floor_holes:
+## Splits rectangles [x0, x1, z0, z1] around holes, leaving the rest covered.
+static func _cut(rects: Array, holes: Array) -> Array:
+	for hole in holes:
 		var next: Array = []
 		for r in rects:
 			if hole[0] >= r[1] or hole[1] <= r[0] or hole[2] >= r[3] or hole[3] <= r[2]:
@@ -245,9 +246,79 @@ func _floor_ceiling() -> void:
 			next.append([maxf(r[0], hole[0]), minf(r[1], hole[1]), r[2], hole[2]])
 			next.append([maxf(r[0], hole[0]), minf(r[1], hole[1]), hole[3], r[3]])
 		rects = next
-	for r in rects:
+	return rects
+
+
+func _floor_ceiling() -> void:
+	var zmax := CH + D + T
+	var whole: Array = [[-0.6, L + 0.6, -zmax, zmax]]
+	# triplanar mapping keeps the tiles lined up across the pieces
+	for r in _cut(whole, floor_holes):
 		box(Vector3(r[0], -0.3, r[2]), Vector3(r[1], 0, r[3]), Mats.m("floor"))
-	box(Vector3(-0.6, H, -zmax), Vector3(L + 0.6, H + 0.3, zmax), Mats.m("ceiling"))
+	# the ceiling is a thin skin of plaster under the floor above; where it has fallen,
+	# the lath and joists show through
+	for r in _cut(whole, ceiling_holes):
+		box(Vector3(r[0], H, r[2]), Vector3(r[1], H + 0.03, r[3]), Mats.m("ceiling"))
+	box(Vector3(-0.6, H + 0.32, -zmax), Vector3(L + 0.6, H + 0.42, zmax), Mats.m("lath"))
+	for hole in ceiling_holes:
+		_fallen_ceiling(hole)
+
+
+## Where the plaster has come down: joists across the gap, lath strips nailed beneath them
+## (some missing, some hanging), a few slabs still dangling, and a ragged plaster edge.
+func _fallen_ceiling(h: Array) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(h[0] * 131.0 + h[2] * 17.0)
+	var x0: float = h[0]
+	var x1: float = h[1]
+	var z0: float = h[2]
+	var z1: float = h[3]
+	var lath := Mats.m("lath")
+	var x := floorf(x0 / 0.4) * 0.4
+	while x < x1 + 0.4:
+		box(Vector3(x - 0.025, H + 0.06, z0 - 0.4), Vector3(x + 0.025, H + 0.32, z1 + 0.4), Mats.m("wood_dark"), false)
+		x += 0.4
+	var z := z0 - 0.01
+	while z < z1:
+		var roll := rng.randf()
+		if roll < 0.12:
+			_dangle(Vector3(x0 + rng.randf_range(0.0, x1 - x0), H + 0.04, z + 0.016), Vector3(rng.randf_range(0.4, 1.0), 0.012, 0.032), Vector3(0, rng.randf_range(-0.3, 0.3), rng.randf_range(0.5, 1.2)), lath)
+		elif roll > 0.2:
+			box(Vector3(x0 - 0.05, H + 0.034, z), Vector3(x1 + 0.05, H + 0.05, z + 0.032), lath, false, false)
+		z += 0.045
+	var plaster := Mats.m("ceiling")
+	for i in rng.randi_range(2, 3):
+		var at := Vector3(rng.randf_range(x0, x1), H + 0.01, z0 if rng.randf() < 0.5 else z1)
+		_dangle(at, Vector3(rng.randf_range(0.3, 0.6), 0.025, rng.randf_range(0.25, 0.45)), Vector3(rng.randf_range(0.6, 1.1) * signf(at.z - (z0 + z1) / 2.0), rng.randf_range(0, TAU), 0), plaster)
+	# break up the straight cut with small pieces sagging along the edge
+	for i in 10:
+		var along := rng.randf()
+		var edge := Vector3(lerpf(x0, x1, along), H - 0.005, z0 if i % 2 == 0 else z1)
+		if i >= 6:
+			edge = Vector3(x0 if i % 2 == 0 else x1, H - 0.005, lerpf(z0, z1, along))
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(rng.randf_range(0.12, 0.3), 0.025, rng.randf_range(0.1, 0.22))
+		mi.mesh = bm
+		mi.material_override = plaster
+		mi.position = edge
+		mi.rotation = Vector3(rng.randf_range(-0.25, 0.25), rng.randf_range(0, TAU), rng.randf_range(-0.25, 0.25))
+		add_child(mi)
+
+
+## A piece hanging from one end: its top edge at `at`, swung by `tilt`.
+func _dangle(at: Vector3, size: Vector3, tilt: Vector3, mat: Material) -> void:
+	var pivot := Node3D.new()
+	pivot.position = at
+	pivot.rotation = tilt
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	mi.mesh = bm
+	mi.material_override = mat
+	mi.position = Vector3(size.x / 2.0, 0, 0)
+	pivot.add_child(mi)
+	add_child(pivot)
 
 
 func _end_wall(x: float, msg: String) -> void:
@@ -319,6 +390,6 @@ func _night() -> void:
 	moon.light_energy = 1.1
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 45.0
-	moon.light_volumetric_fog_energy = 3.0
+	moon.light_volumetric_fog_energy = 1.2
 	moon.rotation_degrees = Vector3(-32, 165, 0)
 	add_child(moon)
