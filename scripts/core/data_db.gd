@@ -20,12 +20,15 @@ var fragments: Array = []
 var documents: Dictionary = {}
 var characters: Dictionary = {}
 var echoes: Dictionary = {}
+## The view from the windows (the site's "outside" block).
+var outside: Dictionary = {}
 
 
 func _ready() -> void:
 	types = _load(CORE + "object_types.json").get("types", {})
-	for tier in [ARCHETYPE + "facts.json", SITE + "site.json"]:
-		var d := _load(tier)
+	var site := _load(SITE + "site.json")
+	outside = site.get("outside", {})
+	for d in [_load(ARCHETYPE + "facts.json"), site]:
 		for s in d.get("sources", []):
 			sources[s["id"]] = s
 		for f in d.get("facts", []):
