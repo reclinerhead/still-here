@@ -57,6 +57,7 @@ static func _model(model: String) -> Node3D:
 		"ledger": _ledger(root)
 		"call_bell": _call_bell(root)
 		"hymnal": _hymnal(root)
+		"letter": _letter(root)
 		"tub": _tub(root)
 		"makers_plate": _b(root, Vector3(0.14, 0.05, 0.006), Vector3.ZERO, Mats.m("brass"))
 		_: push_error("Unknown prop model: " + model)
@@ -266,6 +267,12 @@ static func _hymnal(r: Node3D) -> void:
 	_b(r, Vector3(0.15, 0.034, 0.22), Vector3(0.005, 0.027, 0), Mats.m("pages"), Vector3(0, 0, -0.03))
 	_b(r, Vector3(0.16, 0.01, 0.23), Vector3(0, 0.05, 0), cover, Vector3(0.04, 0, -0.035))
 	_b(r, Vector3(0.012, 0.054, 0.23), Vector3(-0.077, 0.028, 0), cover)
+
+
+## A letter left out of its envelope: the envelope underneath, a folded sheet across it.
+static func _letter(r: Node3D) -> void:
+	_b(r, Vector3(0.165, 0.004, 0.095), Vector3(0, 0.002, 0), Mats.m("pages"), Vector3(0, 0.12, 0))
+	_b(r, Vector3(0.14, 0.006, 0.11), Vector3(0.03, 0.007, 0.02), Mats.m("pages"), Vector3(0, -0.3, 0))
 
 
 static func _call_bell(r: Node3D) -> void:

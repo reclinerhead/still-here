@@ -114,6 +114,8 @@ func _ready() -> void:
 	var args := _user_args()
 	if args.has("bertha"):
 		_preview_bertha(args)
+	elif args.has("journal-check"):
+		_check_journal(args)
 	elif args.has("shot"):
 		_screenshot(args)
 
@@ -207,23 +209,44 @@ func _check_triggers() -> void:
 
 
 # --- preview Bertha ----------------------------------------------------------
-## godot --headless --path . -- --bertha=station [--restore] [--photos=2] [--read=doc.a,doc.b] [--told=frag.a]
-##   [--state=station.bell:carried,station.lamp:placed]
-## Prints Bertha's answer for a subject in a given state, then quits. --read and --told mark
-## documents read and fragments delivered first, and --state sets single objects' states, so
-## connecting lines can be checked part-way through a restoration.
-
-func _preview_bertha(args: Dictionary) -> void:
-	await get_tree().process_frame
+## Dev switches that put the game into a given state, shared by the previews and screenshots:
+##   --restore                       complete every restoration
+##   --state=station.bell:carried    set single objects' states
+##   --read=doc.a,doc.b              mark documents (notes, captions) read
+##   --told=frag.a                   mark Bertha fragments delivered
+##   --seen=echo.dayroom             mark an echo's figures seen
+##   --read-all                      everything read, told and seen (a complete journal)
+func _apply_state_args(args: Dictionary) -> void:
 	if args.has("restore"):
 		restore.force_all()
 	for pair in String(args.get("state", "")).split(",", false):
 		var kv := pair.split(":", true, 1)
 		if kv.size() == 2:
 			State.set_object_state(kv[0].strip_edges(), kv[1].strip_edges())
-	for d in String(args.get("read", "")).split(",", false):
-		State.mark_read(d.strip_edges())
-	State.mark_told(Array(String(args.get("told", "")).split(",", false)).map(func(f): return f.strip_edges()))
+	for d in _list_arg(args, "read"):
+		State.mark_read(d)
+	State.mark_told(_list_arg(args, "told"))
+	for e in _list_arg(args, "seen"):
+		State.mark_seen(e)
+	if args.has("read-all"):
+		for did in Data.documents:
+			State.mark_read(did)
+		for f in Data.fragments:
+			State.mark_told([f["id"]])
+		for eid in Data.echoes:
+			State.mark_seen(eid)
+
+
+func _list_arg(args: Dictionary, key: String) -> Array:
+	return Array(String(args.get(key, "")).split(",", false)).map(func(s): return s.strip_edges())
+
+
+## godot --headless --path . -- --bertha=station [--photos=2] [state switches above]
+## Prints Bertha's answer for a subject in a given state, then quits.
+
+func _preview_bertha(args: Dictionary) -> void:
+	await get_tree().process_frame
+	_apply_state_args(args)
 	var b := preload("res://scripts/phone/bertha.gd").new()
 	var sid: String = args["bertha"]
 	for i in int(args.get("photos", "1")):
@@ -235,6 +258,26 @@ func _preview_bertha(args: Dictionary) -> void:
 				if fx.get("type", "") == "set_flag":
 					State.set_flag(fx["flag"])
 		b.escalate(sid)
+	get_tree().quit()
+
+
+## godot --headless --path . -- --journal-check [state switches above]
+## Prints each character's found traces (in the order found) and unfound traces, then quits.
+## This is the journal's page logic without the UI.
+
+func _check_journal(args: Dictionary) -> void:
+	await get_tree().process_frame
+	_apply_state_args(args)
+	var j := gallery._journal
+	print("\n--- Journal: people met, in order: %s" % [", ".join(j.people_met())])
+	for cid in Data.characters:
+		var a: Dictionary = j.assemble(cid)
+		print("\n%s (%s)" % [Data.characters[cid].get("name", cid), cid])
+		for t in a["found"]:
+			print("  found    %-32s %s" % [t["id"], t["label"]])
+		for t in a["unfound"]:
+			print("  unfound  %-32s %s" % [t["id"], t["label"]])
+		print("  " + ("complete: closing shown" if a["unfound"].is_empty() else "there is more to find"))
 	get_tree().quit()
 
 
@@ -259,6 +302,10 @@ func _screenshot(args: Dictionary) -> void:
 		player.toggle_flashlight()
 	if args.has("restore"):
 		_restore_now()
+	# the other state switches (read, told, seen, read-all, state); restore was handled above
+	var extra := args.duplicate()
+	extra.erase("restore")
+	_apply_state_args(extra)
 	var frames := int(args.get("frames", "90"))
 	for i in frames:
 		await get_tree().process_frame
@@ -277,6 +324,15 @@ func _screenshot(args: Dictionary) -> void:
 		gallery.open()
 		if not phone.entries.is_empty():
 			gallery._show_detail(phone.entries[-1])
+		for i in 10:
+			await get_tree().process_frame
+	# --journal opens the People tab; --person=<character id> opens that page
+	if args.has("journal"):
+		if phone.is_open:
+			phone.toggle()
+		gallery.open_people()
+		if args.has("person"):
+			gallery._journal.show_person(args["person"])
 		for i in 10:
 			await get_tree().process_frame
 	await RenderingServer.frame_post_draw

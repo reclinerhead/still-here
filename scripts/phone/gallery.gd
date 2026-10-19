@@ -1,16 +1,22 @@
 extends CanvasLayer
-## The phone's photo gallery: a grid of every photo taken, and a detail view with Bertha's answer.
-## Photos of the same subject taken before and after a restoration are shown side by side.
+## The phone's screens: Photos (a grid of every photo taken, and a detail view with Bertha's
+## answer; photos of the same subject taken before and after a restoration are shown side by side)
+## and People (the journal, scripts/phone/journal.gd).
+
+const Journal = preload("res://scripts/phone/journal.gd")
 
 var phone        # source of photo entries
 var hud          # for fonts
 var is_open := false
+var tab := "photos"
 
 var _root: ColorRect
+var _tabs: Dictionary = {}     # tab name -> its Button
 var _grid: GridContainer
 var _grid_scroll: ScrollContainer
 var _detail: VBoxContainer
 var _empty: Label
+var _journal: Journal
 
 const INK := Color(0.86, 0.83, 0.75)
 const DIM := Color(0.55, 0.56, 0.52)
@@ -33,10 +39,21 @@ func _ready() -> void:
 	margin.add_child(v)
 
 	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 36)
 	v.add_child(head)
-	var title := _label("Photos", hud.font_display, 44, INK)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(title)
+	for name in ["Photos", "People"]:
+		var b := Button.new()
+		b.text = name
+		b.flat = true
+		b.focus_mode = Control.FOCUS_NONE
+		b.add_theme_font_override("font", hud.font_display)
+		b.add_theme_font_size_override("font_size", 44)
+		b.pressed.connect(_set_tab.bind(name.to_lower()))
+		head.add_child(b)
+		_tabs[name.to_lower()] = b
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(spacer)
 	head.add_child(_label("G or Esc to close", hud.font_type, 15, DIM))
 
 	_empty = _label("No photos yet. Press C to raise your phone, then E to take a picture.", hud.font_type, 18, DIM)
@@ -57,6 +74,9 @@ func _ready() -> void:
 	_detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_detail.add_theme_constant_override("separation", 16)
 	v.add_child(_detail)
+	_journal = Journal.new()
+	_journal.hud = hud
+	v.add_child(_journal)
 	visible = false
 
 
@@ -64,7 +84,28 @@ func open() -> void:
 	is_open = true
 	visible = true
 	hud.visible = false
-	_show_grid()
+	_set_tab("photos")
+
+
+func open_people() -> void:
+	open()
+	_set_tab("people")
+
+
+func _set_tab(name: String) -> void:
+	tab = name
+	for t in _tabs:
+		_tabs[t].add_theme_color_override("font_color", INK if t == name else DIM)
+		_tabs[t].add_theme_color_override("font_hover_color", INK)
+		_tabs[t].add_theme_color_override("font_pressed_color", INK)
+	_journal.visible = name == "people"
+	if name == "people":
+		_empty.visible = false
+		_grid_scroll.visible = false
+		_detail.visible = false
+		_journal.show_list()
+	else:
+		_show_grid()
 
 
 func close() -> void:

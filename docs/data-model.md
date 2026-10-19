@@ -256,23 +256,38 @@ Built from a Core cleanup type.
 
 ### Character, Document (story, composites)
 
+The premise: the player arrives knowing the building and nothing about the people. The people are what the game slowly exposes, through **traces**: anything the player can encounter that is *about* someone. A character's page in the journal (see below) is assembled from the traces the player has actually found.
+
 ```yaml
 - id: story.char.margaret_hale
   name: Margaret Hale, R.N.
   role: night nurse, Ward 3 North
-  basis: invented
+  basis: invented                  # the loader refuses any other value
   notes: "Composite. Kept the lamp on all night. Wrote people's names, never numbers."
+  closing: "Margaret Hale worked nights on Ward 3 North for longer than anyone wrote down. ..."
 
 - id: story.doc.choir_roster
   kind: pencil_on_plaster
   author: story.char.margaret_hale
   basis: invented
+  about: [story.char.dorothy, story.char.edna, ...]   # whose page this document belongs on
+  label: "Pencilled on the corridor wall"              # how the journal names the source
   text: |
     Ward 3 North Day Room Choir, 1953
     Dorothy · Edna · Clara · Ida · Mae
     Lottie · Mrs. D. (loudest!)
     Sopranos to the LEFT of the piano, please. — M.H.
 ```
+
+Traces are tagged, never duplicated:
+
+- **A document** carries `about` (and an optional `label`; the title is used otherwise). A document with several entries splits them with `excerpts`, each with its own `about`, `label` and `text`; only the excerpts about a person reach their page, while the note overlay still shows the document whole. Echo captions are documents (`kind: caption`) and carry `about` the same way.
+- **A Bertha fragment** carries `about`. Its label defaults to "Bertha, *subject title*". Tag only fragments the player can always still get: a connection whose condition can lapse (`not done(...)`, `carried(...)`) would leave a page that can never complete.
+- **An echo figure** carries `character` and a `label` ("Seen at the bay window, watching the water"). The trace has no text; it records that the player stood near the revealed echo.
+
+A trace is **found** when the document is in `State.read`, the fragment in `State.told`, or the echo in `State.seen` (revealed, and the player has been within its glimpse radius since). `closing` is the paragraph shown only once every trace tagged for that person has been found. It is a portrait, not a reward message.
+
+Documents can also be read in place, with the `read` verb: a restoration with `verb: read` shows the object's document when used and changes nothing else (no state, no slot, no presence). Ruth's letter on the day room bench is one.
 
 ### Echo group
 Residents tied to a restoration. No field exists for interacting with or noticing the player, by design.
@@ -358,9 +373,11 @@ zones:
 echoes:
   nma.b50.w3n.station.echo.night_nurse: revealed
 read:                                   # documents seen: found notes and echo captions
-  nma.story.doc.lamp_note: true
+  nma.story.doc.lamp_note: 1            # the value is an encounter stamp (1, 2, 3...): the order found
 told:                                   # fragments Bertha has delivered (with signal)
-  nma.b50.w3n.station.hint_lamp_1: true
+  nma.b50.w3n.station.hint_lamp_1: 2
+seen:                                   # echoes the player has stood near once revealed
+  nma.b50.w3n.station.echo.night_nurse: 3
 player:
   carried: [nma.b50.w3n.room2.lamp]
   photos:
@@ -408,6 +425,12 @@ Combined with `and`, `or`, `not`. No arithmetic, no loops.
 - It rises when the player photographs a linked subject again while the restoration is still unsolved (optionally after some minimum time).
 - Each level maps to a fragment. Level 1 is history that implies; level 2 narrows the search; there is never a level that simply states the answer.
 - Some subjects have no hint fragments at all, only history, so the player keeps reading for the story.
+
+## The journal
+
+The phone's **G** screen has two tabs: **Photos** (the gallery) and **People**. People lists characters in the order the player first met them, and nobody is listed before a trace of them has been found, so the player never sees how many there are. A person's page shows their name as the ward knew them, their role, then the found traces in the order found, each under its source label. While traces remain it ends with a single line, "There is more to find."; once every trace is found it ends with the character's `closing`. No counters, no checkmarks, no progress bars anywhere.
+
+The assembly is pure over the data and the state (`scripts/phone/journal.gd`): gather every trace `about` the character, split by whether its record has a stamp, sort the found ones by stamp. `--journal-check` prints it headlessly for any `--read` / `--told` / `--seen` / `--read-all` state.
 
 ### Rare specials
 One-off lines like the ghost photo are `special` fragments guarded by a flag, so they fire once:

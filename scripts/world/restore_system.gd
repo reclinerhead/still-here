@@ -1,6 +1,6 @@
 extends Node3D
 ## Spawns props and restorable objects from data and carries out the restoration verbs.
-## Verbs implemented: place, upright, use (the restored bell). No object is hard-coded here.
+## Verbs implemented: place, upright, read, use (the restored bell). No object is hard-coded here.
 
 const Props = preload("res://scripts/world/props.gd")
 const ProcTex = preload("res://scripts/world/proc_tex.gd")
@@ -36,6 +36,9 @@ func build() -> void:
 				_make_slot(oid, o, r)
 			"upright":
 				body.set_meta("interact", {"kind": "upright", "object": oid, "restoration": r["id"]})
+			"read":
+				# a letter or a page: reading it shows the note and changes nothing in the world
+				body.set_meta("interact", {"kind": "read", "object": oid})
 
 
 ## Wraps a model in an interactable body (layer 2: seen by the player's ray, never blocks walking).
@@ -94,6 +97,7 @@ func prompt_for(body) -> String:
 				return "[E]  Put the " + name + " back"
 			return ""
 		"upright": return "[E]  Set the " + name + " upright"
+		"read": return "[E]  Read the " + name
 		"ring": return "[E]  Ring the bell"
 		"locked": return "[E]  Try the door"
 	return ""
@@ -121,6 +125,9 @@ func interact(body) -> void:
 			_place(oid, m["restoration"])
 		"upright":
 			_upright(oid, m["restoration"])
+		"read":
+			audio.thunk()
+			note.emit(Data.objects[oid].get("document", ""))
 		"ring":
 			audio.ding()
 		"locked":

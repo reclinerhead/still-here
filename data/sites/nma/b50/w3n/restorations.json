@@ -4,7 +4,8 @@
     { "id": "station.restore.logbook", "verb": "place",   "object": "station.logbook" },
     { "id": "station.restore.bell",    "verb": "place",   "object": "station.bell" },
     { "id": "station.restore.chair",   "verb": "upright", "object": "station.chair" },
-    { "id": "dayroom.restore.hymnal",  "verb": "place",   "object": "dayroom.hymnal" }
+    { "id": "dayroom.restore.hymnal",  "verb": "place",   "object": "dayroom.hymnal" },
+    { "id": "dayroom.read.letter",     "verb": "read",    "object": "dayroom.letter" }
   ],
   "groups": [
     {
