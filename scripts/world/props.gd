@@ -27,11 +27,19 @@ static func build(model: String) -> Node3D:
 	return root
 
 
-static func _model(model: String) -> Node3D:
+## The model exported to assets/models/<model>.glb, or null when it hasn't been built.
+static func imported(model: String) -> Node3D:
 	var path := MODELS + model + ".glb"
-	if ResourceLoader.exists(path):
-		var scene: Node3D = load(path).instantiate()
-		scene.name = model
+	if not ResourceLoader.exists(path):
+		return null
+	var scene: Node3D = load(path).instantiate()
+	scene.name = model
+	return scene
+
+
+static func _model(model: String) -> Node3D:
+	var scene := imported(model)
+	if scene:
 		return scene
 	var root := Node3D.new()
 	root.name = model

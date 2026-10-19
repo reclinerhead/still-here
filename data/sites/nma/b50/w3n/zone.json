@@ -5,6 +5,17 @@
   "basis": "invented",
   "note": "Layout follows Kirkbride's published ward recommendations at roughly real scale, not a measured drawing of Building 50.",
   "dims": { "length": 36, "corridor_half": 1.8, "room_depth": 3.7, "wall": 0.2, "height": 4.0, "wainscot": 1.25 },
+  "window_note": "A segment's \"win\" names a layout: windows at an offset (dx) from the segment's centre, each with a type (opening size, and the model built for it by tools/blender/window.py) and a kind (glass or boarded). Windows in one layout share a sill and top.",
+  "window_types": {
+    "room": { "width": 1.0, "sill": 0.9, "top": 3.1, "model": "window" },
+    "bay": { "width": 1.0, "sill": 0.9, "top": 3.1, "model": "window" }
+  },
+  "window_layouts": {
+    "glass": [{ "type": "room", "dx": 0.0, "kind": "glass" }],
+    "boarded": [{ "type": "room", "dx": 0.0, "kind": "boarded" }],
+    "pair": [{ "type": "room", "dx": -2.0, "kind": "glass" }, { "type": "room", "dx": 2.0, "kind": "boarded" }],
+    "bay": [{ "type": "bay", "dx": -2.2, "kind": "glass" }, { "type": "bay", "dx": 0.0, "kind": "glass" }, { "type": "bay", "dx": 2.2, "kind": "glass" }]
+  },
   "north": [
     { "x0": 0,  "x1": 2,  "type": "solid" },
     { "x0": 2,  "x1": 5,  "type": "room", "door": "locked", "win": "glass" },

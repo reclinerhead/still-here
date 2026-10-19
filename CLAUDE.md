@@ -26,6 +26,7 @@ assets/fonts/            open-licensed fonts with their licences
 assets/textures/         CC0 PBR texture sets from Poly Haven, credited in CREDITS.md
 assets/models/           .glb props built by tools/blender/, with the textures Godot extracts from them
 tools/blender/           Blender build scripts for the models (see Models)
+tools/shot.ps1           screenshots that don't take focus (see Running and checking)
 docs/                    design and data model docs
 ```
 
@@ -44,14 +45,15 @@ docs/                    design and data model docs
 - **Adding a texture set:** put the three 2K JPGs (`diff`, `nor_gl`, `arm`) in `assets/textures/<set>/`, run `godot --headless --path . --import`, then edit each new `.import` to `compress/mode=2` (VRAM), `mipmaps/generate=true` and `detect_3d/compress_to=0`, plus `compress/normal_map=1` on the `nor_gl` map. Materials are built in code, so the editor can't detect these settings itself. Delete the files' entries in `.godot/imported` and import again, then credit the set.
 
 ## Models
-- Props can be scripted Blender models: `tools/blender/<model>.py` builds the geometry, gives it procedural materials, bakes them to textures and exports `assets/models/<model>.glb`. Everything is generated, so a model rebuilds the same way every time. `kit.py` holds what the next props reuse: bevelled pieces with per-piece wood-grain attributes, the aged-wood, brass and dust layers, baking and export. `piano.py` is the worked example.
+- Props can be scripted Blender models: `tools/blender/<model>.py` builds the geometry, gives it procedural materials, bakes them to textures and exports `assets/models/<model>.glb`. Everything is generated, so a model rebuilds the same way every time. `kit.py` holds what the next props reuse: bevelled pieces with per-piece wood-grain attributes; the aged-wood, bare-wood, plaster, flaking-paint, brass and dust layers; baking and export. `piano.py` is the worked example; `window.py` writes several models in one run with `--out-dir assets/models`.
 - **Blender 5.2.2 LTS**, installed on bluejay at `C:\Program Files\Blender Foundation\Blender 5.2\`. Build from the project root, then import:
   `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python tools/blender/piano.py -- --out assets/models/piano.glb`
   then `godot --headless --path . --import`. Add `--quick` for half-size textures and fewer samples while iterating, `--maps <dir>` to keep the baked maps and `--blend <file>` to save the scene for a look in Blender.
 - Scripts write coordinates in Godot's axes (`kit.G()` converts): origin on the floor at the prop's centre, front facing +Z, the same frame as the placeholder, so data positions still fit. Pieces carry only a position (their pivot), never a rotation or scale.
-- Each atlas bakes to colour, ORM (occlusion, roughness, metal) and a tangent-space normal map. Godot extracts them next to the .glb as `<model>_<atlas>_<map>`; give their `.import` the same settings as a texture set (see Materials) once, and they keep them through rebuilds.
-- Models carry no collision. `props.gd` `COLLIDERS` holds every prop's box, for models and placeholders alike.
+- Each atlas bakes to colour, ORM (occlusion, roughness, metal) and a tangent-space normal map; a see-through material (glass) puts alpha in its colour map and exports two-sided. Godot extracts them next to the .glb as `<model>_<atlas>_<map>`; give their `.import` the same settings as a texture set (see Materials) once, and they keep them through rebuilds.
+- Models carry no collision. `props.gd` `COLLIDERS` holds every prop's box, for models and placeholders alike; `ward_builder.gd` keeps a solid box in each window opening.
 - Keep wood matte (roughness around 0.9): the flashlight sits at the camera, so even 4% specular on dark varnish reads as a grey sheen, and SSR shows the room in anything glossier. Compare with the station counter under the flashlight.
+- The windows: `window.py` builds one model per `model` named in the zone's `window_types`, sized to that type's opening, with the window's origin on the floor under the opening's middle, on the wall's inner face. It is four-over-four double-hung sashes painted white and flaking, casing, interior sill and apron, a plastered reveal that runs out past the thin wall (it alone stops the moonlight there, so keep it closed), a diamond wire guard (`guard`) and plywood (`plywood`, kept only on boarded windows). Each pane is `glass/<sash>_<row>_<col>` (`upper` or `lower`, row 0 at the bottom, col 0 on the left from the room), so code can hide, swap or break one; panes cast no shadow. Windows on the south side are turned to face their room.
 - The piano: each key is `keys/key_<midi>` (21 to 108) with its pivot on its back edge, so `rotation.x = deg_to_rad(3.5)` presses it; the lid (hinged at its back edge) and fallboard (hinged at its bottom front edge, `rotation.x = PI / 2` closes it) are separate nodes. `piano.py` reads the hymnal's slot and the maker's plate from `objects.json`: the clean rectangle in the lid's dust is baked from the hymnal's footprint and yaw, and the open fallboard's face sits behind the plate. Rebuild if either moves.
 
 ## Data files
@@ -62,6 +64,7 @@ docs/                    design and data model docs
 - Echo figures take `"face": [x, z]` to turn toward a point instead of `rot_deg`. An echo's `"music"` block (melody and bass as MIDI notes) is synthesized by `ambience.gd`: a faint, muffled cue near its centre before the echo is revealed, clear after.
 - The zone's decay is data too: `debris` zones are `[x0, x1, z0, z1, count, walls]`, where `walls` names the sides that are walls (`n` = z0, `s` = z1, `w` = x0, `e` = x1) for paint flakes to drift against; `ceiling_holes` are where the plaster has come down; `dust` boxes fill the air with motes.
 - An object's `dust_shadow` (`rect`, `round`, `round_small`) is the decal left in the dust at its home; `none` when the model it sits on has the shadow baked in (the hymnal on the piano).
+- Window openings are data: a back-wall segment's `win` names one of the zone's `window_layouts` (`glass`, `boarded`, `pair`, `bay`), which places windows at offsets from the segment's centre, each with a kind and a type from `window_types` (width, sill, top and the model built for it). All are 1.0 m wide, sill 0.9 m, top 3.1 m. Windows in one layout share a sill and top.
 - Restoration groups put their completion toast in `on_complete.toast`. One-time toasts for places live in the zone's `triggers` (a box plus a y range); the tunnel's layout, bulbs, stencil text and water are in the zone's `stair` and `tunnel` blocks.
 
 ## Running and checking
