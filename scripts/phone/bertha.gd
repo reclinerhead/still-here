@@ -4,13 +4,15 @@ extends RefCounted
 
 const Conditions = preload("res://scripts/core/conditions.gd")
 
-const SLOTS := ["ident", "observation", "history", "hint", "special"]
-const PER_SLOT := {"ident": 1, "observation": 2, "history": 1, "hint": 1, "special": 1}
+## A connection ties the photo to something the player already found (read(doc), told(fragment)).
+const SLOTS := ["ident", "observation", "connection", "history", "hint", "special"]
+const PER_SLOT := {"ident": 1, "observation": 2, "connection": 1, "history": 1, "hint": 1, "special": 1}
 const FALLBACK := "core.fallback"
 
 
-## Returns {"text": String, "effects": Array, "subject": String, "state": String}.
+## Returns {"text": String, "effects": Array, "subject": String, "state": String, "ids": Array}.
 ## Evaluated at the moment of the photo, so a delayed answer still describes what was photographed.
+## "ids" lists the fragments used, for State.mark_told once the answer is delivered.
 func answer(subject_id: String) -> Dictionary:
 	var sid := subject_id if subject_id != "" else FALLBACK
 	var by_slot := {}
@@ -33,23 +35,28 @@ func answer(subject_id: String) -> Dictionary:
 		list.sort_custom(func(a, b): return float(a.get("priority", 0)) > float(b.get("priority", 0)))
 		chosen[slot] = list.slice(0, mini(PER_SLOT[slot], list.size()))
 	# Length budget: at most MAX_PARTS paragraphs before any special line.
-	# Drop history first (the journal keeps it), then extra observations.
+	# Drop history first (the journal keeps it), then extra observations, and the connection last:
+	# it is what the player came back for.
 	while _count(chosen) > MAX_PARTS:
 		if chosen.has("history"):
 			chosen.erase("history")
 		elif chosen.has("observation") and chosen["observation"].size() > 1:
 			chosen["observation"].pop_back()
+		elif chosen.has("connection"):
+			chosen.erase("connection")
 		else:
 			break
 	var parts: Array[String] = []
 	var effects: Array = []
+	var ids: Array = []
 	for slot in SLOTS:
 		for f in chosen.get(slot, []):
 			parts.append(f["text"])
 			effects.append_array(f.get("effects", []))
+			ids.append(f["id"])
 	# the ident fragment names the state the subject was in (used to pair before/after photos)
 	var state_key: String = chosen["ident"][0]["id"] if chosen.has("ident") else ""
-	return {"text": "\n\n".join(parts), "effects": effects, "subject": sid, "state": state_key}
+	return {"text": "\n\n".join(parts), "effects": effects, "subject": sid, "state": state_key, "ids": ids}
 
 
 const MAX_PARTS := 4

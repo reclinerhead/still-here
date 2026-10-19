@@ -307,7 +307,7 @@ The core of the phone mechanic. A fragment is a small piece of text attached to 
 ```yaml
 - id: station.frag.hint_lamp_1
   subject: station
-  slot: hint                         # ident | observation | history | hint | special
+  slot: hint                         # ident | observation | connection | history | hint | special
   when: missing(station.lamp) and hint_level(station.restore.lamp) == 1
   text: "Night staff often kept a lamp burning at the station, so anyone who woke frightened could see someone was there."
   basis: inferred
@@ -317,6 +317,19 @@ The core of the phone mechanic. A fragment is a small piece of text attached to 
   facts: [kirkbride.fact.attendant_room_per_ward]
   text: "Kirkbride's ward plan called for an attendant's room on every ward, close enough to keep watch at night."
 ```
+
+A **connection** ties the photo to something the player has already found, using `read(doc)` and `told(fragment)`:
+
+```yaml
+- id: dining.conn_day_book
+  subject: dining
+  slot: connection
+  when: read(doc.day_book)
+  basis: invented
+  text: "Mrs. D. ate all of her supper, the day book said. First time since February. It would have been at this table."
+```
+
+Connections are what make Bertha feel like she is paying attention, and they carry a rule: **Bertha knows the building from the facts tier, and knows the people only from what the player has shown her.** No fragment names a resident, a nurse or an initial unless its condition requires the document (or earlier fragment) that introduced it. Connections are not hints: they never raise hint levels, and the length budget drops them last.
 
 Fragments live at all three tiers:
 
@@ -344,6 +357,10 @@ zones:
   nma.b50.w3n: { presence: 0.5 }
 echoes:
   nma.b50.w3n.station.echo.night_nurse: revealed
+read:                                   # documents seen: found notes and echo captions
+  nma.story.doc.lamp_note: true
+told:                                   # fragments Bertha has delivered (with signal)
+  nma.b50.w3n.station.hint_lamp_1: true
 player:
   carried: [nma.b50.w3n.room2.lamp]
   photos:
@@ -367,6 +384,8 @@ Kept deliberately tiny so the validator can parse and check it:
 | `photos(subject) >= n` | how many times the subject was photographed |
 | `revealed(echo)` | an echo group is visible |
 | `flag(name)` | a one-off story flag |
+| `read(doc)` | the player has seen that document: a found note, or an echo's caption |
+| `told(fragment)` | Bertha has delivered that fragment (a no-signal answer counts once it arrives) |
 | `signal()` | the player currently has signal |
 
 Combined with `and`, `or`, `not`. No arithmetic, no loops.
@@ -379,10 +398,10 @@ Combined with `and`, `or`, `not`. No arithmetic, no loops.
 2. **Snapshot the state.** Capture the relevant state at the moment of the photo. This matters for no-signal photos: an answer delivered later must still describe what the photo showed, not what the room looks like now.
 3. **Gather fragments** for the subject from site, archetype and core tiers.
 4. **Filter by condition** against the snapshot.
-5. **Assemble by slot**, in order: `ident → observation → history → hint → special`. Within a slot, the highest-priority fragment wins; site overrides archetype overrides core. At most one hint per answer.
-6. **Apply the length budget** from Bertha's voice guide (for example, three short paragraphs) by dropping lowest-priority fragments.
+5. **Assemble by slot**, in order: `ident → observation → connection → history → hint → special`. Within a slot, the highest-priority fragment wins; site overrides archetype overrides core. At most one hint and one connection per answer.
+6. **Apply the length budget** from Bertha's voice guide (for example, three short paragraphs): drop history first, then extra observations, then the connection.
 7. **Deliver.** If there's signal, stream it. If not, queue it with the snapshot and deliver when signal returns.
-8. **Update knowledge.** Record the photo; raise hint levels for unsolved restorations the subject is linked to; record before/after pairs.
+8. **Update knowledge.** Record the photo; raise hint levels for unsolved restorations the subject is linked to; record before/after pairs. When the answer is actually delivered, record its fragments as `told`.
 
 ### Hint escalation
 - A restoration's hint level starts at 1.

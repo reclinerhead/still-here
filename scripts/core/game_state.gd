@@ -12,6 +12,8 @@ var flags: Dictionary = {}
 var hint_levels: Dictionary = {}
 var photo_counts: Dictionary = {}
 var revealed: Dictionary = {}
+var read: Dictionary = {}       # document ids (found notes and echo captions) the player has seen
+var told: Dictionary = {}       # fragment ids Bertha has delivered (with signal, not merely queued)
 var carried: Array[String] = []
 var presence_target := 0.0
 var presence := 0.0
@@ -72,3 +74,16 @@ func set_flag(name: String) -> void:
 
 func has_flag(name: String) -> bool:
 	return flags.has(name)
+
+
+## The player has read a document: a found note, or an echo's caption as it played.
+func mark_read(doc_id: String) -> void:
+	if doc_id != "":
+		read[doc_id] = true
+
+
+## Bertha has delivered these fragments. Called when the text appears, so a no-signal
+## answer counts only once signal returns.
+func mark_told(fragment_ids: Array) -> void:
+	for fid in fragment_ids:
+		told[fid] = true

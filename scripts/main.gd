@@ -108,6 +108,7 @@ func _ready() -> void:
 
 	restore.toast.connect(hud.toast)
 	restore.note.connect(hud.show_note)
+	restore.note.connect(State.mark_read)
 	State.group_done.connect(_on_group_done)
 
 	var args := _user_args()
@@ -127,6 +128,7 @@ func _on_group_done(gid: String) -> void:
 	var cap: String = Data.echoes[eid].get("caption", "")
 	if cap != "":
 		hud.queue_caption(Data.documents.get(cap, {}).get("text", ""))
+		State.mark_read(cap)
 
 
 func _start() -> void:
@@ -205,13 +207,23 @@ func _check_triggers() -> void:
 
 
 # --- preview Bertha ----------------------------------------------------------
-## godot --headless --path . -- --bertha=station [--restore] [--photos=2]
-## Prints Bertha's answer for a subject in a given state, then quits.
+## godot --headless --path . -- --bertha=station [--restore] [--photos=2] [--read=doc.a,doc.b] [--told=frag.a]
+##   [--state=station.bell:carried,station.lamp:placed]
+## Prints Bertha's answer for a subject in a given state, then quits. --read and --told mark
+## documents read and fragments delivered first, and --state sets single objects' states, so
+## connecting lines can be checked part-way through a restoration.
 
 func _preview_bertha(args: Dictionary) -> void:
 	await get_tree().process_frame
 	if args.has("restore"):
 		restore.force_all()
+	for pair in String(args.get("state", "")).split(",", false):
+		var kv := pair.split(":", true, 1)
+		if kv.size() == 2:
+			State.set_object_state(kv[0].strip_edges(), kv[1].strip_edges())
+	for d in String(args.get("read", "")).split(",", false):
+		State.mark_read(d.strip_edges())
+	State.mark_told(Array(String(args.get("told", "")).split(",", false)).map(func(f): return f.strip_edges()))
 	var b := preload("res://scripts/phone/bertha.gd").new()
 	var sid: String = args["bertha"]
 	for i in int(args.get("photos", "1")):

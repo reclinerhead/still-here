@@ -3,6 +3,7 @@ extends RefCounted
 ##
 ##   missing(id)  placed(id)  carried(id)  state(id) == "x"  done(id)
 ##   hint_level(id) >= n  photos(id) >= n  revealed(id)  flag(name)  presence() >= 0.5
+##   read(doc)  told(fragment)
 ##
 ## Combined with and / or / not and parentheses. No arithmetic, no side effects.
 
@@ -174,5 +175,7 @@ func _call(name: String, args: Array):
 		"revealed": return st.revealed.has(a0)
 		"flag": return st.has_flag(a0)
 		"presence": return st.presence
+		"read": return st.read.has(a0)
+		"told": return st.told.has(a0)
 	push_error("Unknown condition function: " + name)
 	return false
