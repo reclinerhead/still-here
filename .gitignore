@@ -12,3 +12,6 @@ Thumbs.db
 
 # Python bytecode from the Blender build scripts
 __pycache__/
+
+# Written by tools/shot.ps1 for the length of a screenshot
+/override.cfg

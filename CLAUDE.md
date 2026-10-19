@@ -80,6 +80,7 @@ Save screenshots to `shots/` in the project (ignored by git) with an absolute pa
 - **Screenshot** from a pose, optionally restored or with a phone photo:
   `godot --path . -- --shot=user://shot.png --pose=x,y,z,yaw,pitch [--restore] [--photo] [--before-after] [--gallery] [--no-flashlight] [--frames=40]`
   (`--before-after` photographs, restores everything, photographs again; `--gallery` opens the gallery on the last photo.)
+- **On bluejay, take screenshots with `tools/shot.ps1`**, not Godot directly: a plain run's window jumps in front of whatever Todd is doing. `tools/shot.ps1 <name> <pose> [flags]`, e.g. `tools/shot.ps1 dayroom 18,0,0.6,0,4 restore`, saves `shots/<name>.png` from a window placed off-screen that never takes focus (a temporary `override.cfg` sets `display/window/size/no_focus`). Headless runs can't take screenshots: the dummy renderer never draws a frame.
   Useful poses: corridor `1.2,0,0,-90,-3`; station `17.6,0,-0.9,180,-12`; day room `18,0,0.6,0,4` (add `--restore` for the choir); top of the stairs `26,0,2.2,180,-35`; tunnel from the bottom of the stairs `26,-3.4,9,180,0`; the hymnal by the collapse `26,-3.4,45,180,-15`.
 - Procedural textures are cached in `user://tex_cache`. Bump `CACHE_VERSION` in `proc_tex.gd` after changing a generator.
 
