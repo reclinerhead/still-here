@@ -4,6 +4,7 @@
     "day_book":  { "name": "day book",  "model": "ledger",    "states": ["missing", "carried", "placed"], "pick_size": [0.36, 0.12, 0.28] },
     "call_bell": { "name": "call bell", "model": "call_bell", "states": ["missing", "carried", "placed"], "pick_size": [0.2, 0.16, 0.2] },
     "chair":     { "name": "chair",     "model": "chair",     "states": ["toppled", "upright"], "pick_size": [0.55, 0.95, 0.55] },
-    "hymnal":    { "name": "hymnal",    "model": "hymnal",    "states": ["missing", "carried", "placed"], "pick_size": [0.3, 0.12, 0.32] }
+    "hymnal":    { "name": "hymnal",    "model": "hymnal",    "states": ["missing", "carried", "placed"], "pick_size": [0.3, 0.12, 0.32] },
+    "letter":    { "name": "letter",    "model": "letter",    "states": ["present"], "pick_size": [0.26, 0.06, 0.3] }
   }
 }

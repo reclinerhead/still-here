@@ -173,7 +173,7 @@ func _build_title(root: Control) -> void:
 	sub.add_theme_color_override("font_color", Color(0.89, 0.69, 0.36))
 	v.add_child(sub)
 	var lede := Label.new()
-	lede.text = "The hospital closed in 1989 and this wing stood empty for years. Scrappers and vandals have been through.\nThings that belonged at the nurses' station were taken or wrecked."
+	lede.text = "You know this building. Opened in 1885 on the Kirkbride plan, closed in 1989, more than fifty thousand patients. You don't know a single one of them.\nThis wing stood empty for years after the doors closed. Scrappers and vandals have been through."
 	lede.add_theme_font_size_override("font_size", 18)
 	lede.add_theme_color_override("font_color", Color(0.8, 0.78, 0.7))
 	lede.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

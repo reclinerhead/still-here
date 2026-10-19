@@ -17,7 +17,8 @@ scripts/world/           ward builder (with fallen ceilings and windows), tunnel
                          materials, procedural textures, debris and paint-flake drifts, dust,
                          restorations, echoes, presence
 scripts/player/          first-person controller, flashlight, interaction ray
-scripts/phone/           phone camera UI, photo gallery, and Bertha's answer assembly
+scripts/phone/           phone camera UI, the Photos and People screens (gallery and journal), and
+                         Bertha's answer assembly
 scripts/ui/              HUD: prompt, toasts, captions, found notes, title
 scripts/audio/           procedurally generated ambience and one-shots
 shaders/ghost.gdshader   the echo dissolve shader
@@ -73,6 +74,7 @@ docs/                    design and data model docs
 - Conditions use the tiny language in `scripts/core/conditions.gd`: `missing(id)`, `placed(id)`, `carried(id)`, `state(id) == "x"`, `done(id)`, `hint_level(id) >= n`, `photos(id) >= n`, `revealed(id)`, `flag(name)`, `presence() >= x`, `read(doc)`, `told(fragment)`, combined with `and`, `or`, `not`.
 - Bertha's slots, in order: `ident`, `observation`, `connection`, `history`, `hint`, `special`. A `connection` ties the photo to something the player already found (`read`, `told`). Bertha knows the building from the facts and the people only from what the player has shown her: never name a resident, a nurse or an initial in a fragment unless its `when` requires the document that introduced it.
 - A Bertha subject with `"area": [x0, x1, z0, z1]` instead of `pos` answers for a whole place (the tunnel) when nothing specific is in frame.
+- The people are traces: a document (whole, or split into `excerpts`), a caption, a Bertha fragment or an echo figure tagged `about` a character (`character` on a figure) builds that person's page in the journal, in the order found, with the character's `closing` shown only when every trace is found. Characters must be `"basis": "invented"`. Tag only fragments the player can always still get. The `read` verb shows an object's document in place and changes nothing else.
 - Echo figures take `"face": [x, z]` to turn toward a point instead of `rot_deg`. An echo's `"music"` block (melody and bass as MIDI notes) is synthesized by `ambience.gd`: a faint, muffled cue near its centre before the echo is revealed, clear after.
 - The zone's decay is data too: `debris` zones are `[x0, x1, z0, z1, count, walls]`, where `walls` names the sides that are walls (`n` = z0, `s` = z1, `w` = x0, `e` = x1) for paint flakes to drift against; `ceiling_holes` are where the plaster has come down; `dust` boxes fill the air with motes.
 - An object's `dust_shadow` (`rect`, `round`, `round_small`) is the decal left in the dust at its home; `none` when the model it sits on has the shadow baked in (the hymnal on the piano).
@@ -92,7 +94,8 @@ Save screenshots to `shots/` in the project (ignored by git) with an absolute pa
 - Play: open the project in the editor and press F5, or `godot --path .`
 - **Headless smoke test** (catches script errors): `godot --headless --path . --quit-after 200`
 - **Preview Bertha** for any subject and state:
-  `godot --headless --path . -- --bertha=station [--restore] [--photos=2]`
+  `godot --headless --path . -- --bertha=station [--restore] [--photos=2] [--read=doc.a,doc.b] [--told=frag.a] [--state=station.bell:carried]`
+- **Check the journal** without the UI: `godot --headless --path . -- --journal-check [--read=...] [--told=...] [--seen=echo.dayroom] [--read-all]`. The same state switches work on screenshots, with `--journal` (the People tab) and `--person=story.char.mrs_d` (one page).
 - **Screenshot** from a pose, optionally restored or with a phone photo:
   `godot --path . -- --shot=user://shot.png --pose=x,y,z,yaw,pitch [--restore] [--photo] [--before-after] [--gallery] [--no-flashlight] [--frames=40]`
   (`--before-after` photographs, restores everything, photographs again; `--gallery` opens the gallery on the last photo.)

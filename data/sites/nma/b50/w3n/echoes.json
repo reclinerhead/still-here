@@ -8,7 +8,7 @@
       "caption": "doc.caption_night_nurse",
       "glimpse": { "radius": 7.0, "chance_per_s": 0.1 },
       "figures": [
-        { "pose": "standing", "pos": [17.3, 0.0, 2.95], "rot_deg": 9, "cap": true, "reach": 0.9, "routine": "write", "character": "story.char.margaret_hale" }
+        { "pose": "standing", "pos": [17.3, 0.0, 2.95], "rot_deg": 9, "cap": true, "reach": 0.9, "routine": "write", "character": "story.char.margaret_hale", "label": "Seen at the station, writing the night report" }
       ]
     },
     {
@@ -30,14 +30,14 @@
         "cue_radius": 6.0
       },
       "figures": [
-        { "pose": "seated",   "pos": [15.2, 0.0, -4.3],  "face": [15.2, -5.18], "reach": 1.15, "routine": "play" },
-        { "pose": "standing", "pos": [16.4, 0.0, -4.45], "face": [15.3, -4.75], "routine": "sway" },
+        { "pose": "seated",   "pos": [15.2, 0.0, -4.3],  "face": [15.2, -5.18], "reach": 1.15, "routine": "play", "character": "story.char.dorothy", "label": "Seen at the day room piano, playing" },
+        { "pose": "standing", "pos": [16.4, 0.0, -4.45], "face": [15.3, -4.75], "routine": "sway", "character": "story.char.mrs_d", "label": "Seen beside the piano, singing" },
         { "pose": "standing", "pos": [16.9, 0.0, -3.75], "face": [15.3, -4.75], "routine": "sway" },
         { "pose": "standing", "pos": [16.1, 0.0, -3.3],  "face": [15.3, -4.75], "routine": "sway" },
         { "pose": "standing", "pos": [15.25, 0.0, -3.25], "face": [15.3, -4.75], "routine": "sway" },
         { "pose": "standing", "pos": [14.5, 0.0, -3.6],  "face": [15.3, -4.75], "routine": "sway" },
         { "pose": "standing", "pos": [17.6, 0.0, -4.3],  "face": [15.3, -4.75], "routine": "sway" },
-        { "pose": "seated",   "pos": [18.4, 0.0, -4.75], "face": [18.4, -6.0],  "routine": "still" }
+        { "pose": "seated",   "pos": [18.4, 0.0, -4.75], "face": [18.4, -6.0],  "routine": "still", "character": "story.char.ida", "label": "Seen at the bay window, watching the water" }
       ]
     }
   ]

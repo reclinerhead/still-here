@@ -55,6 +55,11 @@ func _process(dt: float) -> void:
 			r = 0.2 * sin(maxf(0.0, glimpse) / 0.45 * PI)
 	visible = r > 0.005
 	mat.set_shader_parameter("reveal", r)
+	# once revealed, the figures count as seen when the player is close enough to make them out
+	if started and r > 0.5 and player and not State.seen.has(id):
+		var p := Vector2(player.global_position.x, player.global_position.z)
+		if p.distance_to(center) < float(data.get("glimpse", {}).get("radius", 7.0)):
+			State.mark_seen(id)
 	if visible:
 		var now := Time.get_ticks_msec() / 1000.0
 		for fig in figures:
