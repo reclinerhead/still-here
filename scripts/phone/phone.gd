@@ -296,7 +296,7 @@ func _take_photo() -> void:
 			if e["subject"] == sid and e["state"] != ans["state"]:
 				before = e["tex"]
 				break
-	var entry := {"tex": tex, "title": title, "text": ans["text"], "subject": sid, "state": ans["state"], "pending": not has_signal_here(), "before": before}
+	var entry := {"tex": tex, "title": title, "text": ans["text"], "subject": sid, "state": ans["state"], "ids": ans["ids"], "pending": not has_signal_here(), "before": before}
 	entries.append(entry)
 	_show_exchange(tex, title, ans["text"], entry)
 
@@ -325,6 +325,7 @@ func _show_exchange(tex: Texture2D, title: String, text: String, entry: Dictiona
 		label.visible_characters = 0
 		_stream_label = label
 		_stream_t = -1.1   # a short "thinking" pause first
+		State.mark_told(entry["ids"])
 	else:
 		label.text = "No signal. Photo saved. Bertha will answer when you're back in range."
 		label.add_theme_color_override("font_color", Color(0.55, 0.56, 0.52))
@@ -361,5 +362,6 @@ func _process(dt: float) -> void:
 			p["entry"]["pending"] = false
 			p["label"].text = p["text"]
 			p["label"].add_theme_color_override("font_color", Color(0.86, 0.83, 0.75))
+			State.mark_told(p["entry"]["ids"])
 		hud.toast("Signal's back. Bertha answered %d photo%s." % [_pending.size(), "" if _pending.size() == 1 else "s"])
 		_pending.clear()
