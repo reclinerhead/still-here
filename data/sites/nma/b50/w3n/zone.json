@@ -62,7 +62,7 @@
     "stencil": { "pos": [24.61, -2.3, 16.0], "text": "← BLDG 50\nLAUNDRY →" },
     "puddles": 9,
     "debris": [[25.2, 26.8, 8.1, 50.0, 26, "we"]],
-    "water": { "near": [26.0, 4.0], "near_radius": 14.0 }
+    "water": { "near": [26.0, 4.0], "near_radius": 3.5 }
   },
   "triggers": [
     { "id": "seen_stairs", "box": [24.0, 28.0, 1.9, 2.6], "y": [-0.5, 0.5], "toast": "Stairs going down. Somewhere below, water is running." },
