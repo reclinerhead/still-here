@@ -66,7 +66,7 @@ func _ready() -> void:
 	if not _water_cfg.is_empty():
 		_water = _player(null, -80.0, "Water")
 		_trickle = _player(null, -80.0, "Trickle")
-		_drip = _player(_one_drip(), -12.0, "Drip")
+		_drip = _player(_one_drip(), -20.0, "Drip")
 		var water := _water
 		var trickle := _trickle
 		_tasks.append(WorkerThreadPool.add_task(func(): _loop_ready.call_deferred(water, _loop_water())))
@@ -154,16 +154,18 @@ func _process(dt: float) -> void:
 
 
 ## Water close by but impossible to place: its level wanders, a trickle sparkles on and off,
-## both drift slowly across the stereo field. Faint near the stair room, loud underground.
+## both drift slowly across the stereo field. Silent on the ward, barely there at the top of the
+## stairs, rising as you go down to a low level in the tunnel: it is only water in the pipes.
 func _mix_water(dt: float) -> void:
 	var c: Array = _water_cfg.get("near", [0, 0])
-	var near := maxf(0.0, 1.0 - Vector2(_pos.x - float(c[0]), _pos.z - float(c[1])).length() / float(_water_cfg.get("near_radius", 14.0))) * (1.0 - _u)
-	var g := (0.006 + 0.05 * near + 0.22 * _u) / 0.226
+	var d := Vector2(_pos.x - float(c[0]), _pos.z - float(c[1])).length()
+	var near := maxf(0.0, 1.0 - d / float(_water_cfg.get("near_radius", 3.5)))
+	var g := 0.24 * near * near * (1.0 - _u) + _u
 	_water_wander = clampf(_water_wander + randf_range(-0.5, 0.5) * dt * 4.0, 0.3, 1.0)
-	_water.volume_db = linear_to_db(g * _water_wander) - 9.0
+	_water.volume_db = linear_to_db(maxf(g * _water_wander, 0.0001)) - 21.0
 	var target := randf() * 0.7 if randf() < 0.25 else 0.06
 	_trickle_level = lerpf(_trickle_level, target, minf(1.0, dt * 30.0))
-	_trickle.volume_db = linear_to_db(maxf(g * _trickle_level, 0.0001)) - 7.0
+	_trickle.volume_db = linear_to_db(maxf(g * _trickle_level, 0.0001)) - 19.0
 	var now := Time.get_ticks_msec() / 1000.0
 	_water_pan.pan = sin(now * 0.11) * 0.7 + sin(now * 0.31 + 2.0) * 0.25
 	_trickle_pan.pan = -sin(now * 0.17 + 1.0) * 0.7
