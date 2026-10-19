@@ -153,6 +153,8 @@ static func _make(name: String) -> Material:
 			mat.backlight_enabled = true
 			mat.backlight = Color(0.45, 0.53, 0.68)
 			return mat
+		# a little snow blown onto an outside sill
+		"snow": return _flat(Color(0.82, 0.86, 0.92), 0.95)
 		# broken glass: thin, dirty, catching the light
 		"glass_shard":
 			var mat := StandardMaterial3D.new()

@@ -46,7 +46,7 @@ func _ready() -> void:
 	tunnel.build(Data.zone)
 	var outside := Outside.new()
 	add_child(outside)
-	outside.build(Data.outside, env, Data.zone, ward.moon)
+	outside.build(Data.outside, env, Data.zone, ward.moon, ward.breaks)
 
 	var debris := Debris.new()
 	add_child(debris)
@@ -62,6 +62,9 @@ func _ready() -> void:
 		add_child(Dust.make(d))
 
 	audio = Ambience.new()
+	for b in ward.breaks:
+		var hole: Rect2 = b["hole"]
+		audio.breaks.append(b["frame"] * Vector3(hole.get_center().x, hole.get_center().y, b["z"]))
 	add_child(audio)
 
 	restore = RestoreSystem.new()
