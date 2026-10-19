@@ -1,7 +1,8 @@
 extends Node
 ## Procedurally generated sound, so the prototype ships with no audio files:
 ## a cold drone and air for the abandoned ward, a soft warm pad that rises with presence,
-## running water and drips from the tunnel, each echo's music, and one-shots for the bell,
+## running water and drips from the tunnel, each echo's music, wind whistling through broken
+## windows (with the trees and a far-off car outside, close up), and one-shots for the bell,
 ## handling objects and the camera shutter.
 
 const RATE := 22050
@@ -23,6 +24,10 @@ var _water_wander := 0.6
 var _trickle_level := 0.06
 ## [{id, player, filter, cfg, cue, revealed}] for every echo that has music
 var _music: Array = []
+## Where the broken windows' holes are (world positions); set before the node enters the tree.
+var breaks: Array = []
+## [{whistle, trees, car, gust, push, wait}] for each broken window
+var _wind: Array = []
 var _started := false
 var _tasks: Array[int] = []
 var _p := 0.0
@@ -66,6 +71,16 @@ func _ready() -> void:
 		var trickle := _trickle
 		_tasks.append(WorkerThreadPool.add_task(func(): _loop_ready.call_deferred(water, _loop_water())))
 		_tasks.append(WorkerThreadPool.add_task(func(): _loop_ready.call_deferred(trickle, _loop_trickle())))
+	for at in breaks:
+		var w := {"whistle": _player3d(at, 9.0), "trees": _player3d(at, 4.0), "car": _player3d(at, 4.0),
+			"gust": 0.5, "push": 0.0, "wait": randf_range(20.0, 60.0)}
+		_wind.append(w)
+		var whistle: AudioStreamPlayer3D = w["whistle"]
+		var trees: AudioStreamPlayer3D = w["trees"]
+		var car: AudioStreamPlayer3D = w["car"]
+		_tasks.append(WorkerThreadPool.add_task(func(): _loop_ready.call_deferred(whistle, _loop_whistle())))
+		_tasks.append(WorkerThreadPool.add_task(func(): _loop_ready.call_deferred(trees, _loop_branches())))
+		_tasks.append(WorkerThreadPool.add_task(func(): _loop_ready.call_deferred(car, _one_car(), false)))
 	for eid in Data.echoes:
 		var m: Dictionary = Data.echoes[eid].get("music", {})
 		if m.is_empty():
@@ -85,11 +100,12 @@ func _exit_tree() -> void:
 	_tasks.clear()
 
 
-func _loop_ready(p: AudioStreamPlayer, stream: AudioStreamWAV) -> void:
+## p: an AudioStreamPlayer or AudioStreamPlayer3D. A one-shot (loop false) waits to be played.
+func _loop_ready(p, stream: AudioStreamWAV, loop := true) -> void:
 	if not is_inside_tree():
 		return
 	p.stream = stream
-	if _started:
+	if _started and loop:
 		p.play()
 
 
@@ -101,6 +117,10 @@ func start() -> void:
 	for m in _music:
 		if m["player"].stream:
 			m["player"].play()
+	for w in _wind:
+		for k in ["whistle", "trees"]:
+			if w[k].stream:
+				w[k].play()
 
 
 func set_presence(p: float) -> void:
@@ -129,6 +149,8 @@ func _process(dt: float) -> void:
 		_mix_water(dt)
 	for m in _music:
 		_mix_music(m, dt)
+	for w in _wind:
+		_mix_wind(w, dt)
 
 
 ## Water close by but impossible to place: its level wanders, a trickle sparkles on and off,
@@ -175,6 +197,28 @@ func _mix_music(m: Dictionary, dt: float) -> void:
 	lp.cutoff_hz = lerpf(lp.cutoff_hz, 9000.0 if revealed else 650.0, minf(1.0, dt * 1.5))
 
 
+## Wind through a broken window: it gusts and fades on its own, the whistle rising in pitch as it
+## blows harder. Close to the hole, the wind in the trees outside comes in too, and now and then
+## a car passes somewhere far off.
+func _mix_wind(w: Dictionary, dt: float) -> void:
+	w["gust"] = clampf(w["gust"] + randf_range(-0.5, 0.5) * dt * 1.2, 0.2, 1.0)
+	if randf() < dt * 0.05:
+		w["push"] = 1.0
+	w["push"] = maxf(0.0, w["push"] - dt * 0.35)
+	var g := clampf(w["gust"] * 0.7 + w["push"] * 0.5, 0.0, 1.0) * (1.0 - _u)
+	var whistle: AudioStreamPlayer3D = w["whistle"]
+	whistle.volume_db = linear_to_db(maxf(g, 0.001)) - 20.0
+	whistle.pitch_scale = 0.92 + 0.16 * g
+	var close := clampf(1.0 - (_pos.distance_to(whistle.global_position) - 0.6) / 2.4, 0.0, 1.0)
+	w["trees"].volume_db = linear_to_db(maxf(close * (0.5 + 0.5 * g), 0.0001)) - 22.0
+	w["wait"] -= dt
+	if w["wait"] <= 0.0:
+		w["wait"] = randf_range(50.0, 140.0)
+		if _started and close > 0.3 and w["car"].stream:
+			w["car"].volume_db = -26.0
+			w["car"].play()
+
+
 func _bus(name: String, send: String, effects: Array) -> void:
 	if AudioServer.get_bus_index(name) != -1:
 		return
@@ -191,6 +235,18 @@ func _player(stream: AudioStream, db: float, bus := "Room") -> AudioStreamPlayer
 	p.stream = stream
 	p.volume_db = db
 	p.bus = bus
+	add_child(p)
+	return p
+
+
+## A sound placed in the world, fading out by max_distance.
+func _player3d(at: Vector3, max_distance: float) -> AudioStreamPlayer3D:
+	var p := AudioStreamPlayer3D.new()
+	p.position = at
+	p.volume_db = -80.0
+	p.unit_size = 1.2
+	p.max_distance = max_distance
+	p.bus = "Room"
 	add_child(p)
 	return p
 
@@ -317,6 +373,60 @@ static func _loop_trickle() -> AudioStreamWAV:
 	var out := _seamless(_biquad(_noise_buf(n + fade, 23), "bp", 2500.0, 2.5, RATE), n, fade)
 	_normalize(out, 0.6)
 	return _wav(out, true)
+
+
+## Wind through a broken pane: two narrow resonances, a thin whistle, over breathy noise.
+## 6 s loop; the player's pitch and level do the gusting.
+static func _loop_whistle() -> AudioStreamWAV:
+	var n := RATE * 6
+	var fade := RATE / 2
+	var src := _noise_buf(n + fade, 41)
+	var a := _biquad(src, "bp", 1150.0, 14.0, RATE)
+	var b := _biquad(src, "bp", 1720.0, 20.0, RATE)
+	var breath := _biquad(_noise_buf(n + fade, 42), "lp", 700.0, 0.7, RATE)
+	for buf in [a, b, breath]:
+		_normalize(buf, 1.0)
+	for i in a.size():
+		a[i] = a[i] + b[i] * 0.5 + breath[i] * 0.3
+	var out := _seamless(a, n, fade)
+	_normalize(out, 0.6)
+	return _wav(out, true)
+
+
+## Wind in bare trees outside: a soft hiss that swells and sinks (in whole cycles, so it loops).
+## 8 s loop.
+static func _loop_branches() -> AudioStreamWAV:
+	var n := RATE * 8
+	var fade := RATE / 2
+	var hiss := _biquad(_noise_buf(n + fade, 43), "bp", 900.0, 0.5, RATE)
+	var high := _biquad(_noise_buf(n + fade, 44), "bp", 3000.0, 0.8, RATE)
+	_normalize(hiss, 1.0)
+	_normalize(high, 1.0)
+	for i in hiss.size():
+		var t := float(i) / RATE
+		var swell := 0.55 + 0.25 * sin(TAU * t * 2.0 / 8.0) + 0.2 * sin(TAU * t * 3.0 / 8.0 + 1.0)
+		hiss[i] = (hiss[i] + high[i] * 0.35) * swell
+	var out := _seamless(hiss, n, fade)
+	_normalize(out, 0.6)
+	return _wav(out, true)
+
+
+## A car somewhere far off on a wet road: tyre hiss rising and falling as it passes, a low engine
+## dropping in pitch under it. 7 s.
+static func _one_car() -> AudioStreamWAV:
+	var n := RATE * 7
+	var hiss := _biquad(_noise_buf(n, 45), "bp", 1600.0, 0.6, RATE)
+	_normalize(hiss, 1.0)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var env := exp(-pow((t - 3.4) / 1.4, 2.0))
+		ph += TAU * (74.0 - 10.0 * (t - 3.4) / 3.4) / RATE
+		out[i] = (hiss[i] * 0.8 + sin(ph) * 0.25) * env
+	_normalize(out, 0.5)
+	return _wav(out, false)
 
 
 ## A drip: a short sine blip that falls in pitch.

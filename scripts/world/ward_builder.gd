@@ -23,6 +23,9 @@ var ceiling_holes: Array = []
 ## Window sizes (with the model built for each) and the layouts a segment's "win" names.
 var window_types: Dictionary = {}
 var window_layouts: Dictionary = {}
+## Broken windows: {"frame": the window's Transform3D (+z into the room), "hole": Rect2 of the
+## smashed panes in the window's x and y, "z": the glass plane, "sill": float}.
+var breaks: Array = []
 
 const LOCKED_MSGS := [
 	"Locked. The ward key ring was taken too.",
@@ -239,13 +242,20 @@ const BROKEN_PANES := ["lower_1_0", "lower_1_1"]
 func _break(win: Node3D, sill: float, seed: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
+	var hole := Rect2()
+	var z := 0.0
 	for pane_name in BROKEN_PANES:
 		var pane: MeshInstance3D = win.get_node("glass/" + pane_name)
+		var aabb := pane.mesh.get_aabb()
+		var r := Rect2(Vector2(pane.position.x, pane.position.y) + Vector2(aabb.position.x, aabb.position.y), Vector2(aabb.size.x, aabb.size.y))
+		hole = hole.merge(r) if hole.has_area() else r
+		z = pane.position.z
 		_teeth(win.get_node("glass"), pane, rng)
 		pane.free()
 		var flap: Node3D = win.get_node("guard/mesh_" + pane_name)
 		flap.rotation = Vector3(deg_to_rad(rng.randf_range(55.0, 80.0)), 0.0, deg_to_rad(rng.randf_range(-12.0, 12.0)))
 	_grit(win, sill, rng)
+	breaks.append({"frame": win.transform, "hole": hole, "z": z, "sill": sill})
 
 
 ## Teeth of glass along the edges of a smashed pane, on the pane's own patch of texture.
