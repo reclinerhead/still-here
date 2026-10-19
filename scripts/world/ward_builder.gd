@@ -31,6 +31,10 @@ const LOCKED_MSGS := [
 ]
 var _locked_i := 0
 
+## How far the chair rail stops short of a bare wall end (a doorway, a corner), so its end face
+## isn't in the wall's plane: two faces in different materials on one plane flicker (z-fighting).
+const RAIL_STOP := 0.005
+
 
 func build(z: Dictionary) -> void:
 	var d: Dictionary = z["dims"]
@@ -93,8 +97,10 @@ static func make_box(parent: Node3D, a: Vector3, b: Vector3, mat: Material, soli
 	return mi
 
 
-## A wall box, two-tone: painted green below the chair rail, cream plaster above.
-func wall(a: Vector3, b: Vector3) -> void:
+## A wall box, two-tone: painted green below the chair rail, cream plaster above. The rail runs
+## its length, standing proud of both faces, but stops `stop_a` short of a's end and `stop_b`
+## short of b's: RAIL_STOP at a bare end, or a window's casing, which the rail butts into.
+func wall(a: Vector3, b: Vector3, stop_a := 0.0, stop_b := 0.0) -> void:
 	var y0 := minf(a.y, b.y)
 	var y1 := maxf(a.y, b.y)
 	if y0 < WAIN:
@@ -104,8 +110,12 @@ func wall(a: Vector3, b: Vector3) -> void:
 	if y0 < WAIN and y1 > WAIN:
 		var thin_x := absf(b.x - a.x) < absf(b.z - a.z)
 		var pad := Vector3(0.025, 0, 0) if thin_x else Vector3(0, 0, 0.025)
-		var lo := Vector3(minf(a.x, b.x), WAIN - 0.03, minf(a.z, b.z)) - pad
-		var hi := Vector3(maxf(a.x, b.x), WAIN + 0.03, maxf(a.z, b.z)) + pad
+		var along := Vector3(0, 0, 1) if thin_x else Vector3(1, 0, 0)
+		along *= signf((b - a).dot(along))
+		var ra := a + along * stop_a
+		var rb := b - along * stop_b
+		var lo := Vector3(minf(ra.x, rb.x), WAIN - 0.03, minf(ra.z, rb.z)) - pad
+		var hi := Vector3(maxf(ra.x, rb.x), WAIN + 0.03, maxf(ra.z, rb.z)) + pad
 		box(lo, hi, Mats.m("rail"), false)
 
 
@@ -121,23 +131,30 @@ func _build_side(segs: Array, s: float) -> void:
 		var x0: float = seg["x0"]
 		var x1: float = seg["x1"]
 		var typ: String = seg["type"]
+		# an alcove has no front wall, so the front walls beside it end bare
+		var bare0: float = RAIL_STOP if i > 0 and segs[i - 1]["type"] == "alcove" else 0.0
+		var bare1: float = RAIL_STOP if i + 1 < segs.size() and segs[i + 1]["type"] == "alcove" else 0.0
 		if i > 0:
 			var prev: Dictionary = segs[i - 1]
 			if prev["type"] != "solid" or typ != "solid":
-				wall(Vector3(x0 - T / 2.0, 0, zf1), Vector3(x0 + T / 2.0, H, zb0))
+				var bare: float = RAIL_STOP if bare0 > 0.0 or typ == "alcove" else 0.0
+				wall(Vector3(x0 - T / 2.0, 0, zf1), Vector3(x0 + T / 2.0, H, zb0), bare)
 		if typ == "solid":
-			wall(Vector3(x0, 0, zf0), Vector3(x1, H, zf1))
+			wall(Vector3(x0, 0, zf0), Vector3(x1, H, zf1), bare0, bare1)
 			continue
 		_back_wall(x0, x1, zb0, zb1, seg.get("win", ""), seg.get("broken", []), s)
 		if typ == "room":
 			var dx: float = seg.get("door_at", (x0 + x1) / 2.0)
 			var dw := 1.0
 			var dh := 2.3
-			wall(Vector3(x0, 0, zf0), Vector3(dx - dw / 2.0, H, zf1))
-			wall(Vector3(dx + dw / 2.0, 0, zf0), Vector3(x1, H, zf1))
-			wall(Vector3(dx - dw / 2.0, dh, zf0), Vector3(dx + dw / 2.0, H, zf1))
-			box(Vector3(dx - dw / 2.0 - 0.06, 0, zf0 - s * 0.02), Vector3(dx - dw / 2.0, dh, zf1 + s * 0.02), Mats.m("rail"), false)
-			box(Vector3(dx + dw / 2.0, 0, zf0 - s * 0.02), Vector3(dx + dw / 2.0 + 0.06, dh, zf1 + s * 0.02), Mats.m("rail"), false)
+			# the jambs fill the walls' ends, so the opening's sides are the jambs' faces alone
+			var j0 := dx - dw / 2.0 - 0.06
+			var j1 := dx + dw / 2.0 + 0.06
+			wall(Vector3(x0, 0, zf0), Vector3(j0, H, zf1), bare0)
+			wall(Vector3(j1, 0, zf0), Vector3(x1, H, zf1), 0.0, bare1)
+			wall(Vector3(j0, dh, zf0), Vector3(j1, H, zf1))
+			box(Vector3(j0, 0, zf0 - s * 0.02), Vector3(dx - dw / 2.0, dh, zf1 + s * 0.02), Mats.m("rail"))
+			box(Vector3(dx + dw / 2.0, 0, zf0 - s * 0.02), Vector3(j1, dh, zf1 + s * 0.02), Mats.m("rail"))
 			_door(dx, s, seg.get("door", "locked"))
 
 
@@ -146,7 +163,7 @@ func _back_wall(x0: float, x1: float, zb0: float, zb1: float, win: String, broke
 	var wins: Array = []
 	for w in window_layouts.get(win, []):
 		var t: Dictionary = window_types[w["type"]]
-		wins.append([cx + float(w["dx"]), float(t["width"]), float(t["sill"]), float(t["top"]), w["kind"], t.get("model", "")])
+		wins.append([cx + float(w["dx"]), float(t["width"]), float(t["sill"]), float(t["top"]), w["kind"], t.get("model", ""), float(t.get("casing", 0.0))])
 	if wins.is_empty():
 		wall(Vector3(x0, 0, zb0), Vector3(x1, H, zb1))
 		return
@@ -155,21 +172,25 @@ func _back_wall(x0: float, x1: float, zb0: float, zb1: float, win: String, broke
 	wall(Vector3(x0, 0, zb0), Vector3(x1, sill, zb1))
 	wall(Vector3(x0, top, zb0), Vector3(x1, H, zb1))
 	var cur := x0
+	# how far the rail stops short of cur: the casing of the window there, if any
+	var stop := 0.0
 	for i in wins.size():
 		var w: Array = wins[i]
 		var a: float = w[0] - w[1] / 2.0
 		var b: float = w[0] + w[1] / 2.0
-		wall(Vector3(cur, sill, zb0), Vector3(a, top, zb1))
-		_window(a, b, sill, top, zb0, zb1, w[4], w[5], s, broken.has(float(i)) or broken.has(i))
+		var casing := _window(a, b, sill, top, zb0, zb1, w[4], w[5], w[6], s, broken.has(float(i)) or broken.has(i))
+		wall(Vector3(cur, sill, zb0), Vector3(a, top, zb1), stop, casing)
 		cur = b
-	wall(Vector3(cur, sill, zb0), Vector3(x1, top, zb1))
+		stop = casing
+	wall(Vector3(cur, sill, zb0), Vector3(x1, top, zb1), stop)
 
 
 ## A window in the opening from a to b: the model built for its type (tools/blender/window.py)
 ## when there is one, otherwise bare primitives. Either way the glass is solid, to the player and
 ## to the phone's ray. Frosted windows' panes are grimed nearly opaque; a broken one has its
-## eye-level panes smashed out (models only).
-func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float, kind: String, model: String, s: float, broken := false) -> void:
+## eye-level panes smashed out (models only). Returns how far the chair rail beside it stops
+## short of the opening: the model's casing, or RAIL_STOP at the primitives' bare edges.
+func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float, kind: String, model: String, casing: float, s: float, broken := false) -> float:
 	var zc := (zb0 + zb1) / 2.0
 	var win: Node3D = Props.imported(model) if model != "" else null
 	if win:
@@ -186,7 +207,7 @@ func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float
 			_break(win, sill, int(a * 100.0))
 		add_child(win)
 		_blocker(Vector3(a, sill, zc - 0.005), Vector3(b, top, zc + 0.005))
-		return
+		return casing
 	var frame := Mats.m("rail")
 	# sill ledge on the room side
 	box(Vector3(a - 0.05, sill - 0.04, zb0 - s * 0.08), Vector3(b + 0.05, sill, zb0 + s * 0.02), Mats.m("wood"), false)
@@ -197,7 +218,7 @@ func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float
 			box(Vector3(a - 0.06, y, zb0 - s * 0.01), Vector3(b + 0.06, minf(y + 0.2, top), zb0 - s * 0.04), plank)
 			y += 0.3
 		box(Vector3(a, sill, zc - 0.005), Vector3(b, top, zc + 0.005), Mats.m("glass"), true, false)
-		return
+		return RAIL_STOP
 	# mullions: their shadows draw the window pattern across the floor
 	var mx := (a + b) / 2.0
 	box(Vector3(mx - 0.025, sill, zc - 0.03), Vector3(mx + 0.025, top, zc + 0.03), frame, false)
@@ -206,6 +227,7 @@ func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float
 	for yy in [y2, y3]:
 		box(Vector3(a, yy - 0.02, zc - 0.03), Vector3(b, yy + 0.02, zc + 0.03), frame, false)
 	box(Vector3(a, sill, zc - 0.005), Vector3(b, top, zc + 0.005), Mats.m("glass"), true, false)
+	return RAIL_STOP
 
 
 ## A window's eye-level panes (the lower sash's upper row), smashed out of a model.
@@ -439,8 +461,8 @@ func _dangle(at: Vector3, size: Vector3, tilt: Vector3, mat: Material) -> void:
 
 
 func _end_wall(x: float, msg: String) -> void:
-	wall(Vector3(x - T / 2.0, 0, -CH), Vector3(x + T / 2.0, H, -0.6))
-	wall(Vector3(x - T / 2.0, 0, 0.6), Vector3(x + T / 2.0, H, CH))
+	wall(Vector3(x - T / 2.0, 0, -CH), Vector3(x + T / 2.0, H, -0.6), 0.0, RAIL_STOP)
+	wall(Vector3(x - T / 2.0, 0, 0.6), Vector3(x + T / 2.0, H, CH), RAIL_STOP)
 	wall(Vector3(x - T / 2.0, 2.3, -0.6), Vector3(x + T / 2.0, H, 0.6))
 	var body := StaticBody3D.new()
 	body.collision_layer = 1 | 2

@@ -10,7 +10,8 @@ wards, and a sheet of weathered plywood that boarded windows show.
 
 Coordinates are the window's frame in Godot's axes: origin on the floor under the middle of the
 opening, on the wall's inner face; +z faces into the room and the wall runs back to z = -0.2.
-The opening's size (width, sill, top) comes from window_types in the zone data.
+The opening's size (width, sill, top) and the casing's width come from window_types in the zone
+data, which ward_builder.gd reads too: the chair rail stops at the casing.
 
 In Godot, every pane of glass is glass/<sash>_<row>_<col> (sash upper or lower, row 0 at the
 bottom, col 0 on the left as seen from the room), so the game can hide, swap or break one.
@@ -42,19 +43,20 @@ PLY_Z = (-0.47, -0.452)
 
 
 def models():
-	"""Each model the zone's window types name, with its opening's width, sill and top."""
+	"""Each model the zone's window types name, with its opening's width, sill and top, and the
+	casing's width."""
 	with open(ZONE, encoding="utf-8") as f:
 		types = json.load(f)["window_types"]
 	out = {}
 	for t in types.values():
-		size = (float(t["width"]), float(t["sill"]), float(t["top"]))
+		size = (float(t["width"]), float(t["sill"]), float(t["top"]), float(t["casing"]))
 		assert out.setdefault(t["model"], size) == size, f"window types sharing {t['model']} must be one size"
 	return out
 
 
 # --- geometry ------------------------------------------------------------------
 
-def build(width, sill, top):
+def build(width, sill, top, casing):
 	"""The frame and trim (one mesh), the panes, the guard and the plywood."""
 	hw = width / 2.0
 	m = kit.Mesh("frame", floats=("plaster", "brass", "ply"), seed=12)
@@ -103,7 +105,7 @@ def build(width, sill, top):
 	for x in (-0.22, 0.22):
 		m.box((x, clear_lo + 0.03, LOWER_Z[1] + 0.008), (0.03, 0.022, 0.016), bevel=0.003, brass=1.0)
 	# trim on the room side: casing, a cap over the head, the projecting sill and its apron
-	cw, ct = 0.1, 0.03
+	cw, ct = casing, 0.03
 	for s in (-1, 1):
 		m.box((s * (hw + cw / 2), (sill + 0.03 + top) / 2, ct / 2), (cw, top - sill - 0.03, ct), bevel=0.004, grain="y", drop=("-z",))
 	m.box((0.0, top + 0.06, ct / 2), (width + 2 * cw, 0.12, ct), bevel=0.004, drop=("-z",))
@@ -232,9 +234,9 @@ def glass_material():
 
 def main():
 	args = kit.parse_args(out_dir=True)
-	for model, (width, sill, top) in models().items():
+	for model, (width, sill, top, casing) in models().items():
 		kit.reset(args.quick)
-		frame, glass, ply, guard = build(width, sill, top)
+		frame, glass, ply, guard = build(width, sill, top, casing)
 		fm = frame_material()
 		for o in (frame, ply):
 			o.data.materials.append(fm.mat)
