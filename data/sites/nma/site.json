@@ -20,5 +20,20 @@
     { "id": "nma.fact.closed_1989", "text": "The hospital closed in 1989 after serving more than 50,000 patients.", "sources": ["src.nmh_overview"], "confidence": "high" },
     { "id": "nma.fact.thick_walls", "text": "Parts of Building 50 have walls more than two feet thick.", "sources": ["src.ticker_2013"], "confidence": "high" },
     { "id": "mi.fact.grand_rapids_furniture_city", "text": "Grand Rapids, Michigan, was known as Furniture City around the turn of the twentieth century.", "sources": [], "confidence": "medium", "todo": "add a source" }
-  ]
+  ],
+  "outside": {
+    "basis": "inferred",
+    "note": "The view from the wards at night, shaped from a map of the hospital and the south end of Grand Traverse Bay's West Arm: looking north, the bay's west shore runs away on the left, open water reaches the horizon a little east of north, the far shore of the bay closes in on the right, and the town lines the near shore. Building 50's real orientation is simplified to the ward's north. Heights above and below the horizon are exaggerated about three times so the bay reads from a window.",
+    "origin": [18.0, 0.0, 0.0],
+    "profile_note": "Points by compass bearing (0 = north, east positive), in degrees. far_land is the top of the land against the sky (0 where open water runs to the horizon); near_shore is where the water begins below the horizon (positive where there is only land). Lights are [bearing from, bearing to, density 0 to 1]: town lights on the land this side of the water, shore lights along the far shore.",
+    "far_land": [[-180, 2.0], [-60, 2.2], [-30, 2.0], [-10, 1.4], [0, 1.0], [5, 0.6], [8, 0.25], [10, 0.0], [26, 0.0], [28, 0.15], [32, 0.45], [40, 0.7], [50, 0.95], [60, 1.1], [70, 1.2], [80, 1.4], [90, 1.8], [120, 2.0], [180, 2.0]],
+    "near_shore": [[-180, 1.0], [3, 1.0], [4, -0.2], [6, -0.6], [9, -1.9], [14, -2.3], [22, -2.4], [40, -2.3], [55, -2.0], [64, -1.5], [70, -0.8], [75, -0.3], [78, 1.0], [180, 1.0]],
+    "town_lights": [[-40, 3, 0.25], [9, 30, 0.35], [30, 74, 0.9], [74, 95, 0.4]],
+    "shore_lights": [[3, 9, 0.6], [28, 80, 0.35]],
+    "ground_note": "The hillside between the hospital and the town: drop is how far below the ward floor it starts, slope how fast it falls toward the bay, reach how far it runs. Trees and houses are [bearing from, bearing to, distance from, distance to, count], measured from origin.",
+    "ground": { "drop": 10.0, "slope": 0.053, "reach": 650.0 },
+    "trees": [[-80, 6, 150, 520, 140], [62, 120, 150, 520, 90], [120, 280, 60, 400, 160]],
+    "houses": [[12, 62, 330, 620, 26]],
+    "colors": { "zenith": "#02040a", "horizon": "#162033", "moon": "#dfe7f2", "glow": "#7f93b5", "land": "#05070a", "near_land": "#030405", "moonlit": "#1b2433", "water": "#0a1220", "shallows": "#122630", "glitter": "#c8d6ec", "light": "#ffb560" }
+  }
 }

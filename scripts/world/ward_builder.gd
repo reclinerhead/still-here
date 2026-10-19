@@ -128,7 +128,7 @@ func _build_side(segs: Array, s: float) -> void:
 		if typ == "solid":
 			wall(Vector3(x0, 0, zf0), Vector3(x1, H, zf1))
 			continue
-		_back_wall(x0, x1, zb0, zb1, seg.get("win", ""), s)
+		_back_wall(x0, x1, zb0, zb1, seg.get("win", ""), seg.get("broken", []), s)
 		if typ == "room":
 			var dx: float = seg.get("door_at", (x0 + x1) / 2.0)
 			var dw := 1.0
@@ -141,7 +141,7 @@ func _build_side(segs: Array, s: float) -> void:
 			_door(dx, s, seg.get("door", "locked"))
 
 
-func _back_wall(x0: float, x1: float, zb0: float, zb1: float, win: String, s: float) -> void:
+func _back_wall(x0: float, x1: float, zb0: float, zb1: float, win: String, broken: Array, s: float) -> void:
 	var cx := (x0 + x1) / 2.0
 	var wins: Array = []
 	for w in window_layouts.get(win, []):
@@ -155,19 +155,21 @@ func _back_wall(x0: float, x1: float, zb0: float, zb1: float, win: String, s: fl
 	wall(Vector3(x0, 0, zb0), Vector3(x1, sill, zb1))
 	wall(Vector3(x0, top, zb0), Vector3(x1, H, zb1))
 	var cur := x0
-	for w in wins:
+	for i in wins.size():
+		var w: Array = wins[i]
 		var a: float = w[0] - w[1] / 2.0
 		var b: float = w[0] + w[1] / 2.0
 		wall(Vector3(cur, sill, zb0), Vector3(a, top, zb1))
-		_window(a, b, sill, top, zb0, zb1, w[4], w[5], s)
+		_window(a, b, sill, top, zb0, zb1, w[4], w[5], s, broken.has(float(i)) or broken.has(i))
 		cur = b
 	wall(Vector3(cur, sill, zb0), Vector3(x1, top, zb1))
 
 
 ## A window in the opening from a to b: the model built for its type (tools/blender/window.py)
 ## when there is one, otherwise bare primitives. Either way the glass is solid, to the player and
-## to the phone's ray.
-func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float, kind: String, model: String, s: float) -> void:
+## to the phone's ray. Frosted windows' panes are grimed nearly opaque; a broken one has its
+## eye-level panes smashed out (models only).
+func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float, kind: String, model: String, s: float, broken := false) -> void:
 	var zc := (zb0 + zb1) / 2.0
 	var win: Node3D = Props.imported(model) if model != "" else null
 	if win:
@@ -178,6 +180,10 @@ func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float
 			win.get_node("plywood").free()
 		for pane in win.get_node("glass").get_children():
 			pane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if kind == "frosted":
+				pane.material_override = Mats.m("glass_frosted")
+		if broken:
+			_break(win, sill, int(a * 100.0))
 		add_child(win)
 		_blocker(Vector3(a, sill, zc - 0.005), Vector3(b, top, zc + 0.005))
 		return
@@ -201,6 +207,84 @@ func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float
 		box(Vector3(a, yy - 0.02, zc - 0.03), Vector3(b, yy + 0.02, zc + 0.03), frame, false)
 	box(Vector3(a, sill, zc - 0.005), Vector3(b, top, zc + 0.005), Mats.m("glass"), true, false)
 
+
+## A window's eye-level panes (the lower sash's upper row), smashed out of a model.
+const BROKEN_PANES := ["lower_1_0", "lower_1_1"]
+
+
+## Smashes the eye-level panes: jagged teeth of glass left in the frame, the wire guard over them
+## torn back, and bits of glass on the sill and the floor below.
+func _break(win: Node3D, sill: float, seed: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	for pane_name in BROKEN_PANES:
+		var pane: MeshInstance3D = win.get_node("glass/" + pane_name)
+		_teeth(win.get_node("glass"), pane, rng)
+		pane.free()
+		var flap: Node3D = win.get_node("guard/mesh_" + pane_name)
+		flap.rotation = Vector3(deg_to_rad(rng.randf_range(55.0, 80.0)), 0.0, deg_to_rad(rng.randf_range(-12.0, 12.0)))
+	_grit(win, sill, rng)
+
+
+## Teeth of glass along the edges of a smashed pane, on the pane's own patch of texture.
+func _teeth(glass: Node3D, pane: MeshInstance3D, rng: RandomNumberGenerator) -> void:
+	var aabb := pane.mesh.get_aabb()
+	var lo := Vector2(aabb.position.x, aabb.position.y)
+	var hi := Vector2(aabb.end.x, aabb.end.y)
+	var mid := (lo + hi) / 2.0
+	var z := aabb.get_center().z
+	# the texture coordinates at the pane's corners, keyed by (right, top)
+	var arrays := pane.mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+	var corner := {}
+	for i in verts.size():
+		corner[Vector2i(int(verts[i].x > mid.x), int(verts[i].y > mid.y))] = uvs[i]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var sides := [[lo, Vector2(hi.x, lo.y)], [Vector2(hi.x, lo.y), hi], [hi, Vector2(lo.x, hi.y)], [Vector2(lo.x, hi.y), lo]]
+	for side in sides:
+		var t := 0.0
+		while t < 1.0:
+			var t1 := minf(1.0, t + rng.randf_range(0.15, 0.4))
+			if rng.randf() < 0.75:
+				var p0: Vector2 = side[0].lerp(side[1], t)
+				var p1: Vector2 = side[0].lerp(side[1], t1)
+				var tip := p0.lerp(p1, rng.randf_range(0.3, 0.7)).lerp(mid, rng.randf_range(0.1, 0.55))
+				for p in [p0, p1, tip]:
+					var u := inverse_lerp(lo.x, hi.x, p.x)
+					var v := inverse_lerp(lo.y, hi.y, p.y)
+					st.set_uv(corner[Vector2i(0, 0)].lerp(corner[Vector2i(1, 0)], u).lerp(corner[Vector2i(0, 1)].lerp(corner[Vector2i(1, 1)], u), v))
+					st.add_vertex(Vector3(p.x, p.y, z))
+			t = t1
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = pane.mesh.surface_get_material(0)
+	mi.transform = pane.transform
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	glass.add_child(mi)
+
+
+## Bits of glass fallen on the inside sill and the floor below it, in the window's own frame.
+func _grit(win: Node3D, sill: float, rng: RandomNumberGenerator) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in 36:
+		var on_sill := i < 12
+		var c := Vector3(rng.randf_range(-0.45, 0.45), sill + 0.031 if on_sill else 0.004,
+			rng.randf_range(-0.25, 0.02) if on_sill else rng.randf_range(0.06, 0.8))
+		var r := rng.randf_range(0.01, 0.045)
+		var ang := rng.randf() * TAU
+		for k in 3:
+			var a2 := ang + k * TAU / 3.0 + rng.randf_range(-0.5, 0.5)
+			st.add_vertex(c + Vector3(cos(a2) * r, 0.0, sin(a2) * r))
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = Mats.m("glass_shard")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	win.add_child(mi)
 
 ## An invisible solid box (layer 1, like the walls).
 func _blocker(a: Vector3, b: Vector3) -> void:
@@ -412,12 +496,9 @@ func _lamps(cfg: Dictionary) -> void:
 		i += 1
 
 
-## The night outside: a dim sky behind the windows and moonlight that only gets in through them.
+## Moonlight from the north, which only gets in through the windows. The view outside them is
+## outside.gd's.
 func _night() -> void:
-	var far := CH + D + T + 5.0
-	# the sky stops short of the ground so the tunnel can run underneath it
-	for s in [-1.0, 1.0]:
-		box(Vector3(-6, -0.6, s * far), Vector3(L + 6, H + 8, s * (far + 0.2)), Mats.m("night"), false, false)
 	moon = DirectionalLight3D.new()
 	moon.light_color = Color(0.55, 0.66, 0.9)
 	moon.light_energy = 1.1

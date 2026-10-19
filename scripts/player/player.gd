@@ -37,7 +37,8 @@ func _ready() -> void:
 	cam.position.y = EYE
 	cam.fov = 72.0
 	cam.near = 0.05
-	cam.far = 80.0
+	# far enough for the hillside and town outside the windows (outside.gd)
+	cam.far = 1500.0
 	add_child(cam)
 	# a wide cone shaped by the beam pattern: hot spot, corona, and a faint spill past the edges of view
 	flashlight = SpotLight3D.new()

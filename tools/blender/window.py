@@ -14,7 +14,7 @@ The opening's size (width, sill, top) comes from window_types in the zone data.
 
 In Godot, every pane of glass is glass/<sash>_<row>_<col> (sash upper or lower, row 0 at the
 bottom, col 0 on the left as seen from the room), so the game can hide, swap or break one.
-`plywood` is shown only on boarded windows; `guard` is the wire mesh and its frame.
+`plywood` is shown only on boarded windows; `guard` holds the wire mesh's frame (`bars`) and a panel of mesh over each pane, guard/mesh_<sash>_<row>_<col>, pivoted on its top edge.
 """
 
 import json
@@ -80,6 +80,7 @@ def build(width, sill, top):
 	meet = (clear_lo + clear_hi) / 2
 	sx = inner - 0.005
 	panes = []
+	mids = {}
 	for sash, (z0, z1), y0, y1, bottom in (("lower", LOWER_Z, clear_lo, meet + 0.018, 0.075),
 			("upper", UPPER_Z, meet - 0.018, clear_hi, 0.035)):
 		zc, zd = (z0 + z1) / 2, z1 - z0
@@ -90,6 +91,7 @@ def build(width, sill, top):
 		m.box((0.0, y1 - rail_top / 2, zc), (2 * sx, rail_top, zd), bevel=0.003)
 		gx, gy0, gy1 = sx - STILE, y0 + bottom, y1 - rail_top
 		gm = (gy0 + gy1) / 2
+		mids[sash] = gm
 		m.box((0.0, gm, zc), (2 * gx, MUNTIN, zd * 0.7), bevel=0.002)
 		m.box((0.0, (gy0 + gy1) / 2, zc), (MUNTIN, gy1 - gy0, zd * 0.7), bevel=0.002, grain="y")
 		for row, (py0, py1) in enumerate(((gy0, gm), (gm, gy1))):
@@ -123,30 +125,43 @@ def build(width, sill, top):
 	ply = kit.Mesh("plywood", floats=("ply",), seed=13)
 	ply.box((0.0, (sill + 0.04 + top) / 2, (PLY_Z[0] + PLY_Z[1]) / 2), (width + 0.04, top - sill - 0.04, PLY_Z[1] - PLY_Z[0]),
 		bevel=0.003, grain="y", ply=1.0)
-	return frame, glass, ply.finish(), _guard(inner, clear_lo, clear_hi)
+	return frame, glass, ply.finish(), _guard(inner, clear_lo, clear_hi, meet, mids)
 
 
-def _guard(inner, y0, y1):
-	"""Diamond wire mesh in a flat iron frame, just outside the upper sash."""
-	g = kit.Mesh("guard")
+def _guard(inner, y0, y1, meet, mids):
+	"""Diamond wire mesh in a flat iron frame, just outside the upper sash: the frame, and a
+	panel of mesh over each pane (guard/mesh_<sash>_<row>_<col>), pivoted on its top edge so the
+	game can tear one back. The panels share one lattice, so whole they read as one sheet."""
+	root = kit.empty("guard")
+	f = kit.Mesh("bars")
 	x0, x1 = -inner + 0.004, inner - 0.004
 	bar = 0.025
 	for s in (-1, 1):
-		g.box((s * (inner - 0.004 - bar / 2), (y0 + y1) / 2, GUARD_Z), (bar, y1 - y0, 0.006))
+		f.box((s * (inner - 0.004 - bar / 2), (y0 + y1) / 2, GUARD_Z), (bar, y1 - y0, 0.006))
 	for y in (y0 + bar / 2, y1 - bar / 2):
-		g.box((0.0, y, GUARD_Z), (x1 - x0, bar, 0.006))
-	# wires along both diagonals, clipped to the frame
+		f.box((0.0, y, GUARD_Z), (x1 - x0, bar, 0.006))
+	parts = [f.finish(parent=root)]
+	rows = {"lower": (y0, mids["lower"], meet), "upper": (meet, mids["upper"], y1)}
+	for sash, (a, mid, b) in rows.items():
+		for row, (cy0, cy1) in enumerate(((a, mid), (mid, b))):
+			for col, (cx0, cx1) in enumerate(((x0, 0.0), (0.0, x1))):
+				p = kit.Mesh(f"mesh_{sash}_{row}_{col}")
+				_lattice(p, cx0, cx1, cy0, cy1)
+				parts.append(p.finish(origin=((cx0 + cx1) / 2, cy1, GUARD_Z), parent=root))
+	return parts
+
+
+def _lattice(g, x0, x1, y0, y1):
+	"""Wires along both diagonals of one lattice, clipped to the rectangle."""
 	step = MESH * math.sqrt(2.0)
 	for slope in (1.0, -1.0):
 		lo = y0 - slope * (x1 if slope > 0 else x0)
 		hi = y1 - slope * (x0 if slope > 0 else x1)
-		c = lo + step / 2
-		while c < hi:
-			ends = _clip(slope, c, x0, x1, y0, y1)
+		for k in range(math.floor(lo / step), math.ceil(hi / step) + 1):
+			c = (k + 0.5) * step
+			ends = _clip(slope, c, x0, x1, y0, y1) if lo < c < hi else None
 			if ends:
 				_wire(g, *ends, GUARD_Z + 0.004 * slope)
-			c += step
-	return g.finish()
 
 
 def _clip(slope, c, x0, x1, y0, y1):
@@ -226,12 +241,14 @@ def main():
 		gm = glass_material()
 		for o in glass:
 			o.data.materials.append(gm.mat)
-		guard.data.materials.append(kit.flat("guard", "#3a3029", 0.85, 0.4))
+		iron = kit.flat("guard", "#3a3029", 0.85, 0.4)
+		for o in guard:
+			o.data.materials.append(iron)
 		s = 1 if args.quick else 2
 		maps = kit.maps_dir(args, model)
 		kit.bake("frame", [frame, ply], [fm], 1024 * s, 0.25, maps)
 		kit.bake("glass", glass, [gm], 512 * s, 0.1, maps)
-		kit.report([frame, ply, guard] + glass)
+		kit.report([frame, ply] + guard + glass)
 		kit.export(os.path.join(args.out_dir, f"{model}.glb"))
 
 

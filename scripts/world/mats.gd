@@ -143,10 +143,23 @@ static func _make(name: String) -> Material:
 			# old, grimy glass: the flashlight shows in it as a soft smear, not a mirror-bright spot
 			mat.roughness = 0.45
 			return mat
-		"night":
+		# grimed and frosted nearly opaque: the view outside is only a glow, lit by the moon behind it
+		"glass_frosted":
 			var mat := StandardMaterial3D.new()
-			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			mat.albedo_color = Color(0.008, 0.013, 0.024)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+			mat.albedo_color = Color(0.36, 0.4, 0.45, 0.9)
+			mat.roughness = 0.9
+			mat.backlight_enabled = true
+			mat.backlight = Color(0.45, 0.53, 0.68)
+			return mat
+		# broken glass: thin, dirty, catching the light
+		"glass_shard":
+			var mat := StandardMaterial3D.new()
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+			mat.albedo_color = Color(0.62, 0.68, 0.68, 0.45)
+			mat.roughness = 0.12
 			return mat
 	push_error("Unknown material: " + name)
 	return _flat(Color.MAGENTA)
