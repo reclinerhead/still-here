@@ -21,6 +21,7 @@ import tempfile
 
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Vector
 
 
@@ -35,10 +36,14 @@ def srgb(h):
 	return tuple(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c) + (1.0,)
 
 
-def parse_args():
+def parse_args(out_dir=False):
+	"""--out <file.glb>, or --out-dir <folder> for a script that writes several models."""
 	argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 	p = argparse.ArgumentParser()
-	p.add_argument("--out", required=True, help="the .glb to write")
+	if out_dir:
+		p.add_argument("--out-dir", required=True, help="the folder to write the .glb files in")
+	else:
+		p.add_argument("--out", required=True, help="the .glb to write")
 	p.add_argument("--maps", help="keep the baked texture maps in this folder (default: a temp folder)")
 	p.add_argument("--blend", help="also save the .blend here, to look at in Blender")
 	p.add_argument("--quick", action="store_true", help="half-size textures and few samples, for iterating")
@@ -294,26 +299,83 @@ class Graph:
 		return self.node("ShaderNodeTexNoise", [("Vector", v), ("Scale", scale), ("Detail", detail),
 			("Roughness", rough)]).outputs[out]
 
-	def finish(self, color, rough, metal=0.0, height=None, bump=0.3, distance=0.0006):
-		"""Wires the channels to a Principled BSDF; bake() reads them back from here."""
+	def finish(self, color, rough, metal=0.0, height=None, bump=0.3, distance=0.0006, alpha=None):
+		"""Wires the channels to a Principled BSDF; bake() reads them back from here. With alpha,
+		the baked colour map carries it and the exported material is see-through (glTF BLEND)."""
 		p = self.node("ShaderNodeBsdfPrincipled", [("Base Color", color), ("Roughness", rough), ("Metallic", metal)])
 		if height is not None:
 			b = self.node("ShaderNodeBump", [("Height", height), ("Strength", bump), ("Distance", distance)])
 			self.put(p.inputs["Normal"], b.outputs[0])
 		self.put(self.nt.nodes["Material Output"].inputs["Surface"], p.outputs[0])
 		self.bsdf = p
-		self.channels = {"color": color, "rough": rough, "metal": metal}
+		self.channels = {"color": color, "rough": rough, "metal": metal, "alpha": alpha}
 		return self.mat
 
 
-def flat(name, color, rough):
-	"""A plain material with no textures, for faces nobody sees."""
+def flat(name, color, rough, metal=0.0):
+	"""A plain material with no textures, for small or unseen parts."""
 	m = bpy.data.materials.new(name)
 	m.use_backface_culling = True
 	p = m.node_tree.nodes["Principled BSDF"]
 	p.inputs["Base Color"].default_value = srgb(color)
 	p.inputs["Roughness"].default_value = rough
+	p.inputs["Metallic"].default_value = metal
 	return m
+
+
+def edges(g, radius, breakup=30.0):
+	"""1 along edges and corners, fading over about radius, broken up by noise so wear is patchy."""
+	pos = g.geo("Position")
+	bevel = g.node("ShaderNodeBevel", [("Radius", radius)], samples=8).outputs[0]
+	e = g.inv(g.node("ShaderNodeVectorMath", [(0, bevel), (1, g.geo("Normal"))], operation="DOT_PRODUCT").outputs["Value"])
+	return g.ramp(g.mul(e, g.ramp(g.noise(pos, breakup, 3.0), 0.4, 0.7, 0.0, 2.0)), 0.015, 0.06)
+
+
+def bare_wood(g, dark, light):
+	"""Unfinished wood gone grey with age and weather, its grain raised. Returns colour,
+	roughness and height."""
+	grain = g.attr("grain", "Vector")
+	pos = g.geo("Position")
+	rings = g.node("ShaderNodeTexWave", [("Vector", grain), ("Scale", 60.0), ("Distortion", 6.0), ("Detail", 3.0),
+		("Detail Scale", 0.6)], wave_type="RINGS", rings_direction="X", wave_profile="SAW").outputs["Factor"]
+	late = g.ramp(rings, 0.55, 0.95)
+	cracks = g.ramp(g.noise(g.stretch(grain, 3.0, 300.0, 300.0), detail=2.0), 0.62, 0.7)
+	col = g.mix(late, srgb(light), srgb(dark))
+	col = g.mix(g.mul(cracks, 0.7), col, srgb("#1c1814"))
+	col = g.mix(1.0, col, g.ramp(g.noise(pos, 6.0, 3.0), 0.3, 0.7, 0.85, 1.1), "MULTIPLY")
+	return col, g.ramp(g.noise(pos, 20.0), 0.3, 0.7, 0.88, 0.97), g.add(g.mul(late, 0.4), g.mul(cracks, -0.8))
+
+
+def plaster(g, light="#b8b1a3", dark="#9a9385"):
+	"""Bare plaster: chalky, mottled and slightly pitted. Returns colour, roughness and height."""
+	pos = g.geo("Position")
+	col = g.mix(g.noise(pos, 14.0, 5.0), srgb(dark), srgb(light))
+	pits = g.ramp(g.noise(pos, 260.0, 2.0), 0.62, 0.7)
+	return g.mix(g.mul(pits, 0.5), col, srgb("#6f6a61")), 0.97, g.add(g.noise(pos, 60.0, 4.0), g.mul(pits, -1.0))
+
+
+def painted(g, under, paint, peel=0.3, scale=7.0, dirt=0.35):
+	"""Old paint over another layer (under: its colour, roughness and height). It has yellowed
+	and greyed unevenly, gathered grime in the corners and low down, and flaked off in ragged
+	patches, worst along edges, with a pale lifted rim where it is curling away. peel is the
+	share lost; dirt is how much grimy film lies over what's left. Returns colour, roughness,
+	height and the mask of where it has gone."""
+	pos = g.geo("Position")
+	ucol, urough, uheight = under
+	n = g.add(g.noise(pos, scale, 6.0, 0.62), g.mul(edges(g, 0.008), 0.25))
+	lost = g.ramp(n, 1.0 - peel, 1.0 - peel + 0.012)
+	rim = g.mul(g.ramp(n, 1.0 - peel - 0.025, 1.0 - peel), g.inv(lost))
+	col = g.mix(g.ramp(g.noise(g.vec("ADD", pos, (5.3, 2.1, 0.7)), 2.5, 3.0), 0.35, 0.7), srgb(paint),
+		g.mix(0.45, srgb(paint), srgb("#a8996f")))
+	ao = g.node("ShaderNodeAmbientOcclusion", [("Distance", 0.05)], samples=8).outputs["AO"]
+	grime = g.add(g.mul(g.inv(ao), 0.9), g.ramp(g.xyz(pos)["Z"], 0.0, 1.2, 0.35, 0.0))
+	col = g.mix(g.mul(g.noise(g.vec("ADD", pos, (1.7, 8.2, 3.3)), 3.0, 4.0), dirt), col, srgb("#6d6352"))
+	col = g.mix(g.mul(grime, 0.65), col, srgb("#4a4236"))
+	col = g.mix(g.mul(rim, 0.35), col, srgb("#eee8da"))
+	col = g.mix(lost, col, ucol)
+	rough = g.lerp(lost, g.lerp(grime, 0.72, 0.85), urough)
+	height = g.lerp(lost, g.add(0.6, g.mul(rim, 0.5)), g.mul(uheight, 0.3))
+	return col, rough, height, lost
 
 
 def aged_wood(g, dark, light, worn="#5c3f27", bloom="#7d766c"):
@@ -422,15 +484,20 @@ def unwrap(objs, margin=0.003):
 
 def bake(name, objs, graphs, size, ao_distance, maps_dir):
 	"""Bakes the procedural materials (Graphs) used by objs into one atlas of textures, saved in
-	maps_dir: <name>_color (sRGB), <name>_orm (occlusion, roughness, metal) and <name>_normal
-	(tangent space, OpenGL convention like glTF and Godot). Then gives objs a single plain
-	material, also called name, that uses them."""
+	maps_dir: <name>_color (sRGB; with alpha when the Graphs give one), <name>_orm (occlusion,
+	roughness, metal) and <name>_normal (tangent space, OpenGL convention like glTF and Godot).
+	Then gives objs a single plain material, also called name, that uses them."""
 	unwrap(objs)
+	alpha = any(g.channels["alpha"] is not None for g in graphs)
 	maps = {
-		"color": _image(f"{name}_color", size, "sRGB"),
+		"color": _image(f"{name}_color", size, "sRGB", alpha),
 		"orm": _image(f"{name}_orm", size, "Non-Color"),
 		"normal": _image(f"{name}_normal", size, "Non-Color"),
 	}
+	passes = ["color", "orm", "normal"]
+	if alpha:
+		maps["alpha"] = _image(f"{name}_alpha", size, "Non-Color")
+		passes.append("alpha")
 	for g in graphs:
 		g.target = g.node("ShaderNodeTexImage")
 		g.nt.nodes.active = g.target
@@ -438,62 +505,74 @@ def bake(name, objs, graphs, size, ao_distance, maps_dir):
 		ao = g.node("ShaderNodeAmbientOcclusion", [("Distance", ao_distance)], samples=16).outputs["AO"]
 		g.orm = g.node("ShaderNodeCombineColor", [("Red", ao), ("Green", g.channels["rough"]),
 			("Blue", g.channels["metal"])]).outputs[0]
-	for key in ("color", "orm", "normal"):
+	for key in passes:
 		for g in graphs:
 			g.target.image = maps[key]
 			surface = g.nt.nodes["Material Output"].inputs["Surface"]
 			if key == "normal":
 				g.put(surface, g.bsdf.outputs[0])
 			else:
-				g.put(g.emit.inputs["Color"], g.channels["color"] if key == "color" else g.orm)
+				source = {"color": g.channels["color"], "orm": g.orm, "alpha": g.channels["alpha"]}[key]
+				g.put(g.emit.inputs["Color"], 1.0 if source is None else source)
 				g.put(surface, g.emit.outputs[0])
 		_select(objs)
 		print(f"kit: baking {name}_{key} at {size}px")
 		bpy.ops.object.bake(type="NORMAL" if key == "normal" else "EMIT", margin=max(4, size // 128), use_clear=True)
+	if alpha:
+		# the alpha pass becomes the colour map's alpha channel
+		rgba = np.empty(size * size * 4, dtype=np.float32)
+		a = np.empty(size * size * 4, dtype=np.float32)
+		maps["color"].pixels.foreach_get(rgba)
+		maps.pop("alpha").pixels.foreach_get(a)
+		rgba[3::4] = a[0::4]
+		maps["color"].pixels.foreach_set(rgba)
 	os.makedirs(maps_dir, exist_ok=True)
 	for key, img in maps.items():
-		ext = "jpg" if key == "color" else "png"
-		img.file_format = "JPEG" if key == "color" else "PNG"
-		img.filepath_raw = os.path.join(maps_dir, f"{img.name}.{ext}")
+		jpg = key == "color" and not alpha
+		img.file_format = "JPEG" if jpg else "PNG"
+		img.filepath_raw = os.path.join(maps_dir, f"{img.name}.{'jpg' if jpg else 'png'}")
 		img.save(quality=92)
-	mat = _textured(name, maps)
+	mat = _textured(name, maps, alpha)
 	for o in objs:
 		o.data.materials.clear()
 		o.data.materials.append(mat)
 	return mat
 
 
-def _image(name, size, space):
-	img = bpy.data.images.new(name, size, size, alpha=False)
+def _image(name, size, space, alpha=False):
+	img = bpy.data.images.new(name, size, size, alpha=alpha)
 	img.colorspace_settings.name = space
 	return img
 
 
-def _textured(name, maps):
-	"""The export material, in the node layout the glTF exporter understands."""
+def _textured(name, maps, alpha=False):
+	"""The export material, in the node layout the glTF exporter understands. A see-through one
+	(glass) is two-sided."""
 	mat = bpy.data.materials.new(name)
-	mat.use_backface_culling = True
+	mat.use_backface_culling = not alpha
 	nt = mat.node_tree
 	p = nt.nodes["Principled BSDF"]
 
 	def tex(key):
 		n = nt.nodes.new("ShaderNodeTexImage")
 		n.image = maps[key]
-		return n.outputs["Color"]
+		return n.outputs
 
-	nt.links.new(tex("color"), p.inputs["Base Color"])
+	color = tex("color")
+	nt.links.new(color["Color"], p.inputs["Base Color"])
+	if alpha:
+		nt.links.new(color["Alpha"], p.inputs["Alpha"])
 	orm = nt.nodes.new("ShaderNodeSeparateColor")
-	nt.links.new(tex("orm"), orm.inputs[0])
+	nt.links.new(tex("orm")["Color"], orm.inputs[0])
 	nt.links.new(orm.outputs["Green"], p.inputs["Roughness"])
 	nt.links.new(orm.outputs["Blue"], p.inputs["Metallic"])
 	occlusion = nt.nodes.new("ShaderNodeGroup")
 	occlusion.node_tree = _gltf_output()
 	nt.links.new(orm.outputs["Red"], occlusion.inputs["Occlusion"])
 	nm = nt.nodes.new("ShaderNodeNormalMap")
-	nt.links.new(tex("normal"), nm.inputs["Color"])
+	nt.links.new(tex("normal")["Color"], nm.inputs["Color"])
 	nt.links.new(nm.outputs["Normal"], p.inputs["Normal"])
 	return mat
-
 
 def _gltf_output():
 	"""The custom node group the glTF exporter reads an occlusion texture from."""

@@ -3,6 +3,7 @@ extends Node3D
 ## doors, window openings, floor, ceiling, light fixtures and the night outside.
 
 const Mats = preload("res://scripts/world/mats.gd")
+const Props = preload("res://scripts/world/props.gd")
 
 var L := 36.0
 var CH := 1.8
@@ -19,6 +20,9 @@ var moon: DirectionalLight3D
 var floor_holes: Array = []
 ## Places where the ceiling plaster has come down, as [x0, x1, z0, z1].
 var ceiling_holes: Array = []
+## Window sizes (with the model built for each) and the layouts a segment's "win" names.
+var window_types: Dictionary = {}
+var window_layouts: Dictionary = {}
 
 const LOCKED_MSGS := [
 	"Locked. The ward key ring was taken too.",
@@ -41,6 +45,8 @@ func build(z: Dictionary) -> void:
 		var st: Dictionary = z["stair"]
 		floor_holes.append([st["x0"], st["x1"], st["z0"], CH + D + T])
 	ceiling_holes = z.get("ceiling_holes", [])
+	window_types = z.get("window_types", {})
+	window_layouts = z.get("window_layouts", {})
 	_build_side(z["north"], -1.0)
 	_build_side(z["south"], 1.0)
 	_floor_ceiling()
@@ -138,11 +144,9 @@ func _build_side(segs: Array, s: float) -> void:
 func _back_wall(x0: float, x1: float, zb0: float, zb1: float, win: String, s: float) -> void:
 	var cx := (x0 + x1) / 2.0
 	var wins: Array = []
-	match win:
-		"glass": wins = [[cx, 1.0, 1.25, 2.75, "glass"]]
-		"boarded": wins = [[cx, 1.0, 1.25, 2.75, "boarded"]]
-		"pair": wins = [[cx - 2.0, 1.0, 1.25, 2.75, "glass"], [cx + 2.0, 1.0, 1.25, 2.75, "boarded"]]
-		"bay": wins = [[cx - 2.2, 1.3, 0.9, 3.0, "glass"], [cx, 1.3, 0.9, 3.0, "glass"], [cx + 2.2, 1.3, 0.9, 3.0, "glass"]]
+	for w in window_layouts.get(win, []):
+		var t: Dictionary = window_types[w["type"]]
+		wins.append([cx + float(w["dx"]), float(t["width"]), float(t["sill"]), float(t["top"]), w["kind"], t.get("model", "")])
 	if wins.is_empty():
 		wall(Vector3(x0, 0, zb0), Vector3(x1, H, zb1))
 		return
@@ -155,13 +159,28 @@ func _back_wall(x0: float, x1: float, zb0: float, zb1: float, win: String, s: fl
 		var a: float = w[0] - w[1] / 2.0
 		var b: float = w[0] + w[1] / 2.0
 		wall(Vector3(cur, sill, zb0), Vector3(a, top, zb1))
-		_window(a, b, sill, top, zb0, zb1, w[4], s)
+		_window(a, b, sill, top, zb0, zb1, w[4], w[5], s)
 		cur = b
 	wall(Vector3(cur, sill, zb0), Vector3(x1, top, zb1))
 
 
-func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float, kind: String, s: float) -> void:
+## A window in the opening from a to b: the model built for its type (tools/blender/window.py)
+## when there is one, otherwise bare primitives. Either way the glass is solid, to the player and
+## to the phone's ray.
+func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float, kind: String, model: String, s: float) -> void:
 	var zc := (zb0 + zb1) / 2.0
+	var win: Node3D = Props.imported(model) if model != "" else null
+	if win:
+		# models face +z, into the room: turn those on the south side around
+		win.position = Vector3((a + b) / 2.0, 0, zb0)
+		win.rotation.y = PI if s > 0.0 else 0.0
+		if kind != "boarded":
+			win.get_node("plywood").free()
+		for pane in win.get_node("glass").get_children():
+			pane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(win)
+		_blocker(Vector3(a, sill, zc - 0.005), Vector3(b, top, zc + 0.005))
+		return
 	var frame := Mats.m("rail")
 	# sill ledge on the room side
 	box(Vector3(a - 0.05, sill - 0.04, zb0 - s * 0.08), Vector3(b + 0.05, sill, zb0 + s * 0.02), Mats.m("wood"), false)
@@ -181,6 +200,20 @@ func _window(a: float, b: float, sill: float, top: float, zb0: float, zb1: float
 	for yy in [y2, y3]:
 		box(Vector3(a, yy - 0.02, zc - 0.03), Vector3(b, yy + 0.02, zc + 0.03), frame, false)
 	box(Vector3(a, sill, zc - 0.005), Vector3(b, top, zc + 0.005), Mats.m("glass"), true, false)
+
+
+## An invisible solid box (layer 1, like the walls).
+func _blocker(a: Vector3, b: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = (b - a).abs()
+	cs.shape = sh
+	body.add_child(cs)
+	body.position = (a + b) / 2.0
+	add_child(body)
 
 
 func _door(dx: float, s: float, state: String) -> void:
